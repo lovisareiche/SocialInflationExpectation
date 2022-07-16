@@ -1,21 +1,24 @@
 
 # Purpose: Make two"weighted" measures, 
-#           Social Proximity to Inflation and Physical Proximity to Inflation
+#           Social Proximity to Inflation and Physical Proximity to Inflation (not yet achieved)
+
 # Inputs: 
 #     _input/county_county.tsv
 #     _input/cty_covariates.csv
 #     _input/sf12010countydistancemiles.csv
+#     _input/FRBNY-SCE-Public-Microdata-Complete.csv
+#     _input/cz00_eqv_v1.csv
 # Outputs: 
-#     _intermediate/time_series_covid_cases_deaths_cleaned.csv
-#     _intermediate/sci_weighted_cases.csv
-#     _intermediate/dist_weighted_cases.csv
-# Date: 12/01/2020
+#     _intermediate/covariates.csv
+#     _intermediate/sci_cz_cz.tsv
+#     _intermediate/inflexp_date_cz.csv
+
+# Date: 16/07/2022
+# written by: Lovisa Reiche
+
 # Steps:
 #     1. Specify data location
 #     2. Prep the datasets
-#     2. Generate Social Proximity to Cases
-#     3. Generate Physical Proximity to Cases
-#     4. Generate LEX Proximity to Cases
 
 
 library(tidyverse)
@@ -72,6 +75,8 @@ dat_covariates <- read_csv(dir.covariates) %>%
   mutate(cz1990 = str_pad(as.character(cz1990), 5, "left", "0")) %>% # shape into same format
   # left_join with geo data to use cz2000 instead of cz1990
   left_join(dat_geo,by = "cz1990")
+
+write_csv(dat_covariates,"../SocialInflationExpectation/_intermediate/covariates.csv")
 
 # Read in SCI, goal: convert fips to cz2000 (more coarse)
 dat_sci <- read_tsv(dir.county_county_sci) %>%
