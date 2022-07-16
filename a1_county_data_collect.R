@@ -1,0 +1,146 @@
+
+# Purpose: Make two"weighted" measures, 
+#           Social Proximity to Inflation and Physical Proximity to Inflation
+# Inputs: 
+#     _input/county_county.tsv
+#     _input/cty_covariates.csv
+#     _input/sf12010countydistancemiles.csv
+# Outputs: 
+#     _intermediate/time_series_covid_cases_deaths_cleaned.csv
+#     _intermediate/sci_weighted_cases.csv
+#     _intermediate/dist_weighted_cases.csv
+# Date: 12/01/2020
+# Steps:
+#     1. Specify data location
+#     2. Prep the datasets
+#     2. Generate Social Proximity to Cases
+#     3. Generate Physical Proximity to Cases
+#     4. Generate LEX Proximity to Cases
+
+
+library(tidyverse)
+library(lubridate)
+library(pracma)
+
+
+####################################
+##### 1. Specify data location #####
+####################################
+
+
+#### FILL IN THESE LINEs BEFORE RUNNING ####
+
+# SCI 
+# https://data.humdata.org/dataset/social-connectedness-index'
+dir.county_county_sci <- "../SocialInflationExpectation/_input/county_county.tsv"
+
+# Distance
+# https://data.nber.org/data/county-distance-database.html
+dir.county_county_dist <- "../SocialInflationExpectation/_input/sf12010countydistancemiles.csv"
+
+# Covariates
+# https://opportunityinsights.org/data/?geographic_level=102&topic=0&paper_id=0#resource-listing
+dir.covariates <- "../SocialInflationExpectation/_input/cty_covariates.csv"
+# Note: use 2010 FIPS and 1990 commuting zones
+
+# Inflation
+#  Survey of Consumer Expectations, © 2013-21 Federal Reserve Bank of New York (FRBNY)
+dir.inflexp <- "../SocialInflationExpectation/_input/FRBNY-SCE-Public-Microdata-Complete.csv"
+# Note: use 2000 commuting zones
+
+# Geographic IDs
+# https://www.ers.usda.gov/data-products/commuting-zones-and-labor-market-areas/
+dir.geo <- "../SocialInflationExpectation/_input/cz00_eqv_v1.csv"
+
+
+
+################################
+##### 2. Prep the datasets #####
+################################
+
+# 2.1 need to convert FIPS to 2000 commuting zones
+################################
+
+# Read in table of FIPS, 2000 cz and 1990 cz
+dat_geo <- read_csv2(dir.geo) %>%
+  # select only fips and 2000 commuting zones
+  select(fips = FIPS, cz2000 = "Commuting Zone ID, 2000", cz1990 = "Commuting Zone ID, 1990")
+
+# Read in Covariates, goal: assign 2000 cz to all areas in covariates
+dat_covariates <- read_csv(dir.covariates) %>%
+  rename(cz1990 = cz) %>% # rename for clarity
+  mutate(cz1990 = str_pad(as.character(cz1990), 5, "left", "0")) %>% # shape into same format
+  # left_join with geo data to use cz2000 instead of cz1990
+  left_join(dat_geo,by = "cz1990")
+
+# Read in SCI, goal: convert fips to cz2000 (more coarse)
+dat_sci <- read_tsv(dir.county_county_sci) %>%
+  # inner_join with geo to get cz2000 for each foreign fips (removes na)
+  inner_join(dat_geo,by = c("fr_loc"="fips")) %>%
+  rename(fr_loc_cz = cz2000) %>%
+  subset(select = c(user_loc,fr_loc,scaled_sci,fr_loc_cz)) %>%
+  inner_join(dat_geo,by = c("user_loc"="fips")) %>%
+  rename(user_loc_cz = cz2000) %>%
+  subset(select = c(user_loc,fr_loc,scaled_sci,fr_loc_cz,user_loc_cz))
+
+# Collapse by combining all from one location
+for (i in unique(dat_sci$user_loc_cz)) {
+  
+  print(i)
+  
+  us_subset <- filter(dat_sci,user_loc_cz == i)
+  U = uniq(us_subset$fr_loc_cz)
+  a = accumarray(U$n,us_subset$scaled_sci)
+  
+  if (i==dat_sci$user_loc_cz[1]){
+    dat_sci_final <- tibble(user_loc = rep(i,times=length(a)), fr_loc = as.character(U$b), sci = a)
+  } else {
+    dat_sci_final <- rbind(dat_sci_final2,tibble(user_loc = as.character(rep(i,times=length(a))), fr_loc = as.character(U$b), sci = a))
+  }
+  
+}
+
+# Get the share of total SCI from each county
+dat_sci_final <- dat_sci_final %>%
+  group_by(user_loc) %>%
+  mutate(total_sci = sum(sci)) %>%
+  mutate(share_sci = sci/total_sci) %>%
+  ungroup
+
+write_tsv(dat_sci_final,"../SocialInflationExpectation/_intermediate/sci_cz_cz.tsv")
+
+
+# 2.2 aggregate inflation expectations on cz2000 level
+################################
+
+# Read in Inflation expectations micro-data
+dat_inflex <- read_csv(dir.inflexp) %>%
+  rename(cz2000 = "_COMMUTING_ZONE", inflexp = "Q8v2part2") %>% # rename as name leads to errors
+  subset(select = c(date,userid,inflexp,cz2000)) %>%
+  mutate(date = as.character(date)) %>%
+  mutate(date = parse_date(date, "%Y%m")) %>%
+  group_by(cz2000) %>% 
+  arrange(cz2000, date) %>% # for overview
+  ungroup
+
+# count obervations in each cz date pair
+dat_inflex_count <- aggregate(dat_inflex$userid, by=subset(dat_inflex, select = c(date,cz2000)), FUN = length) %>%
+  rename(obs = x)
+
+# calculate average expectations in each cz date pair
+dat_inflex_agg <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = c(date,cz2000)), FUN = mean, na.action = na.rm) %>%
+  rename(inflexp_mean = x) %>%
+  inner_join(dat_inflex_count) %>%
+  filter(!is.na(inflexp_mean))
+
+dat_inflex_agg2 <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = c(date,cz2000)), FUN = median, na.action = na.rm) %>%
+  rename(inflexp_median = x) %>%
+  inner_join(dat_inflex_agg) %>%
+  filter(!is.na(inflexp_median))
+
+
+write_csv(dat_inflex_agg2,"../SocialInflationExpectation/_intermediate/inflexp_date_cz.csv")
+
+
+
+
