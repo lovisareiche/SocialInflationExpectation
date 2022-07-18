@@ -165,3 +165,44 @@ curr_dat <- dat_sci_final %>%
 write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/sci_weighted_inflation.csv")
 
 
+
+######################################################
+##### 3. Create Physicial Proximity to Inflation #####
+######################################################
+
+# Read in data for county distances
+county_county_dist <- read_csv(dir.county_county_dist) %>%
+  inner_join(dat_geo,by = c("county1"="fips")) %>%
+  rename(cz1 = cz2000) %>%
+  subset(select = c(cz1,mi_to_county,county2)) %>%
+  inner_join(dat_geo,by = c("county2"="fips")) %>%
+  rename(cz2 = cz2000) %>%
+  subset(select = c(cz1,mi_to_county,cz2))
+
+for (i in unique(county_county_dist$cz1)) {
+  
+  print(i)
+  
+  us_subset <- filter(county_county_dist, cz1 == i)
+  U = uniq(us_subset$cz2)
+  a = accumarray(U$n,us_subset$mi_to_county, func = mean)
+  
+  if (i==county_county_dist$cz1[1]){
+    dat_dist_final <- tibble(cz1 = rep(i,times=length(a)), cz2 = as.character(U$b), mi_to_cz = a)
+  } else {
+    dat_dist_final <- rbind(dat_dist_final,tibble(cz1 = rep(i,times=length(a)), cz2 = as.character(U$b), mi_to_cz = a))
+  }
+  
+}
+
+curr_dat <- dat_dist_final %>%
+  mutate(cz2 = as.numeric(cz2)) %>%
+  # Join in the Inflation data
+  inner_join(dat_inflex_agg2, by=c("cz2"="cz2000")) %>% 
+  # Collapse and make the final weighted measure
+  group_by(cz1, date) %>% 
+  summarise(dist_weighted_inflation = sum(inflexp_mean/(1+mi_to_cz))) %>%
+  ungroup
+
+write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/dist_weighted_inflation.csv")
+
