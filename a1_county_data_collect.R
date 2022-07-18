@@ -19,6 +19,7 @@
 # Steps:
 #     1. Specify data location
 #     2. Prep the datasets
+#     3. Create Social Proximity to Inflation
 
 
 library(tidyverse)
@@ -147,5 +148,20 @@ dat_inflex_agg2 <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = 
 write_csv(dat_inflex_agg2,"../SocialInflationExpectation/_intermediate/inflexp_date_cz.csv")
 
 
+
+###################################################
+##### 3. Create Social Proximity to Inflation #####
+###################################################
+
+
+curr_dat <- dat_sci_final %>%
+  # Join in the Inflation data
+  inner_join(dat_inflex_agg2, by=c("fr_loc"="cz2000")) %>% 
+  # Collapse and make the final weighted measure
+  group_by(user_loc, date) %>% 
+  summarise(sci_weighted_inflation = sum(inflexp_mean*share_sci)) %>%
+  ungroup
+
+write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/sci_weighted_inflation.csv")
 
 
