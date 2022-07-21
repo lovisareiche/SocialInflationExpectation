@@ -19,7 +19,7 @@
 # Steps:
 #     1. Specify data location
 #     2. Prep the datasets
-#     3. Create Social Proximity to Inflation
+#     3. Create Proximity to Inflation (social and physical)
 
 
 library(tidyverse)
@@ -149,9 +149,13 @@ write_csv(dat_inflex_agg2,"../SocialInflationExpectation/_intermediate/inflexp_d
 
 
 
-###################################################
-##### 3. Create Social Proximity to Inflation #####
-###################################################
+############################################
+##### 3. Create Proximity to Inflation #####
+############################################
+
+
+# 3.2 Social Proximity (by SCI)
+################################
 
 
 curr_dat <- dat_sci_final %>%
@@ -166,9 +170,8 @@ write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/sci_weighted_in
 
 
 
-######################################################
-##### 3. Create Physicial Proximity to Inflation #####
-######################################################
+# 3.2 Physiscal Proximity (by distance)
+################################
 
 # Read in data for county distances
 county_county_dist <- read_csv(dir.county_county_dist) %>%
@@ -179,6 +182,9 @@ county_county_dist <- read_csv(dir.county_county_dist) %>%
   rename(cz2 = cz2000) %>%
   subset(select = c(cz1,mi_to_county,cz2))
 
+
+# Since distances are given for counties we need to convert to commuting zones
+# as distance we choose the average distance between cz1 and cz2
 for (i in unique(county_county_dist$cz1)) {
   
   print(i)
@@ -194,6 +200,7 @@ for (i in unique(county_county_dist$cz1)) {
   }
   
 }
+
 
 curr_dat <- dat_dist_final %>%
   mutate(cz2 = as.numeric(cz2)) %>%
