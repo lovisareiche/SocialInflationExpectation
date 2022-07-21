@@ -123,4 +123,8 @@ coeftest(inflex_fe_mod)
 # Points to Note:
 # - covariates are time invariant (not in reality but in data we have) and thus not included in fixed effects regression
 # - can control for friends having same experience in same cz by excluding same cz from measure
+# - some cz have only very few people answering the inflation expectations survey so the medians may be driven by very few people
+
+plot(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation)
+text(paste("Correlation:", round(cor(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation), 2)), x = -50, y = 70)
 
