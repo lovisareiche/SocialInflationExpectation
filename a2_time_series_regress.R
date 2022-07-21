@@ -17,9 +17,7 @@ library(lubridate)
 library(sf)
 library(tigris)
 library(pracma)
-library(AER)
 library(plm)
-library(stargazer)
 
 # Throughout we will analyze changes in inflation expectations at a monthly level
 
@@ -40,15 +38,18 @@ inflex_change <- dat_inflex %>%
 
 # Read in SCI-weighted inflation (Social Proximity to Inflation)
 # Built in a1_county_data_collect.R
+sci_weighted_inflation_control <- read_csv("../SocialInflationExpectation/_intermediate/sci_weighted_inflation_control.csv")
 sci_weighted_inflation <- read_csv("../SocialInflationExpectation/_intermediate/sci_weighted_inflation.csv")
+
 # Read in distance-weighted inflation (Physical Proximity to Inflation)
 # Built in a1_county_data_collect.R
 dist_weighted_inflation <- read_csv("../SocialInflationExpectation/_intermediate/dist_weighted_inflation.csv")
 
 
 # Join the weighted cases measures
+# CHOOSE IF WANT TO WORK WITH CONTROL OR NOT
 weighted_inflation_dat <- dist_weighted_inflation %>% 
-  left_join(sci_weighted_inflation, by=c("cz1"="user_loc", "date"="date"))
+  left_join(sci_weighted_inflation_control, by=c("cz1"="user_loc", "date"="date"))
 
 # Make the changes in weighted cases
 weighted_inflex_change <- weighted_inflation_dat %>%
@@ -121,5 +122,5 @@ coeftest(inflex_fe_mod)
 
 # Points to Note:
 # - covariates are time invariant (not in reality but in data we have) and thus not included in fixed effects regression
-# - not controlling for impact of current inflation in state i on own and friends expectations
+# - can control for friends having same experience in same cz by excluding same cz from measure
 

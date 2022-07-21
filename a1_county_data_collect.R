@@ -11,7 +11,10 @@
 # Outputs: 
 #     _intermediate/covariates.csv
 #     _intermediate/sci_cz_cz.tsv
+#     _intermediate/sci_cz_cz_control.tsv
 #     _intermediate/inflexp_date_cz.csv
+#     _intermediate/sci_weighted_inflation.csv
+#     _intermediate/sci_weighted_inflation_control.csv
 
 # Date: 16/07/2022
 # written by: Lovisa Reiche
@@ -113,7 +116,15 @@ dat_sci_final <- dat_sci_final %>%
   mutate(share_sci = sci/total_sci) %>%
   ungroup
 
+dat_sci_final_control <- dat_sci_final %>%
+  group_by(user_loc) %>%
+  filter(user_loc!=fr_loc) %>%
+  mutate(total_sci = sum(sci)) %>%
+  mutate(share_sci = sci/total_sci) %>%
+  ungroup
+
 write_tsv(dat_sci_final,"../SocialInflationExpectation/_intermediate/sci_cz_cz.tsv")
+write_tsv(dat_sci_final_control,"../SocialInflationExpectation/_intermediate/sci_cz_cz_control.tsv")
 
 
 # 2.2 aggregate inflation expectations on cz2000 level
@@ -167,6 +178,16 @@ curr_dat <- dat_sci_final %>%
   ungroup
 
 write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/sci_weighted_inflation.csv")
+
+curr_dat <- dat_sci_final_control %>%
+  # Join in the Inflation data
+  inner_join(dat_inflex_agg2, by=c("fr_loc"="cz2000")) %>% 
+  # Collapse and make the final weighted measure
+  group_by(user_loc, date) %>% 
+  summarise(sci_weighted_inflation = sum(inflexp_mean*share_sci)) %>%
+  ungroup
+
+write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/sci_weighted_inflation_control.csv")
 
 
 
