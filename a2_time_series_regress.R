@@ -17,6 +17,9 @@ library(lubridate)
 library(sf)
 library(tigris)
 library(pracma)
+library(AER)
+library(plm)
+library(stargazer)
 
 # Throughout we will analyze changes in inflation expectations at a monthly level
 
@@ -98,3 +101,25 @@ regress_dat <- inflex_change %>%
          l2_median = lag(inflexp_median, 2))
 
 write_csv(regress_dat, "../SocialInflationExpectation/_intermediate/time_series_regress_dat.csv")
+
+
+###############################
+##### 3. Panel regression #####
+###############################
+
+
+# Set individual commuting zones as factors
+regress_dat$cz2000 <- as.factor(regress_dat$cz2000)
+
+# estimate the fixed effects regression with plm()
+inflex_fe_mod <- plm(inflexp_median ~ sci_weighted_inflation + dist_weighted_inflation, 
+                    data = regress_dat,
+                    index = c("cz2000", "date"), 
+                    model = "within")
+coeftest(inflex_fe_mod)
+
+
+# Points to Note:
+# - covariates are time invariant (not in reality but in data we have) and thus not included in fixed effects regression
+# - not controlling for impact of current inflation in state i on own and friends expectations
+
