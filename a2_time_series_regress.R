@@ -47,7 +47,9 @@ dist_weighted_inflation <- read_csv("../SocialInflationExpectation/_intermediate
 
 
 # Join the weighted cases measures
+
 # CHOOSE IF WANT TO WORK WITH CONTROL OR NOT
+
 weighted_inflation_dat <- dist_weighted_inflation %>% 
   left_join(sci_weighted_inflation_control, by=c("cz1"="user_loc", "date"="date"))
 
@@ -119,12 +121,27 @@ inflex_fe_mod <- plm(inflexp_median ~ sci_weighted_inflation + dist_weighted_inf
                     model = "within")
 coeftest(inflex_fe_mod)
 
+# estimate the pooled effects regression with plm()
+inflex_po_mod <- plm(inflexp_median ~ sci_weighted_inflation + dist_weighted_inflation, 
+                     data = regress_dat,
+                     index = c("cz2000", "date"), 
+                     model = "pooling")
+coeftest(inflex_po_mod)
+
 
 # Points to Note:
 # - covariates are time invariant (not in reality but in data we have) and thus not included in fixed effects regression
 # - can control for friends having same experience in same cz by excluding same cz from measure
 # - some cz have only very few people answering the inflation expectations survey so the medians may be driven by very few people
 
-plot(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation)
-text(paste("Correlation:", round(cor(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation), 2)), x = -50, y = 70)
 
+png("../SocialInflationExpectation/_intermediate/SCI weighted.png", width = 500, height = 500)
+plot(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation, main = "SCI weighted", xlab = "Median expectation", ylab="SCI weighted expectation")
+text(paste("Correlation:", round(cor(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation), 2)), x = -50, y = 70)
+dev.off()
+
+
+png("../SocialInflationExpectation/_intermediate/Dist weighted.png", width = 500, height = 500)
+plot(regress_dat$inflexp_median,regress_dat$dist_weighted_inflation, main = "Dist weighted", xlab = "Median expectation", ylab="SCI weighted expectation")
+text(paste("Correlation:", round(cor(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation), 2)), x = -50, y = 70)
+dev.off()
