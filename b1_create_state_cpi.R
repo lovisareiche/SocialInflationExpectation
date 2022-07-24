@@ -1,10 +1,20 @@
 # Purpose: Create time series of US states inflation data
 # Inputs: 
+#     _input/East North Central.xlsx
+#     _input/East South Central.xlsx
+#     _input/Middle Atlantic.xlsx
+#     _input/Mountain.xlsx
+#     _input/New England.xlsx
+#     _input/Pacific.xlsx
+#     _input/South Atlantic.xlsx
+#     _input/West North Central.xlsx
+#     _input/West North Central.xlsx
 # Outputs: 
+#     _intermediate/cpi_cz2000-timeseries.csv
 # Date: 23/07/2022
 # Steps:
 #     1. Regional inflation time series
-#     2. Match commuting zones to regions
+#     2. Match commuting zones to inflation
 
 library(tidyverse)
 library(lubridate)
@@ -52,8 +62,7 @@ shape_time_series <- function(path,r){
         mutate(year = rep(i,12), Region = r) %>%
         mutate(Date = with(dat_pivot,paste(year,month,sep="-"))) %>%
         mutate(Date = parse_date(Date,"%Y-%b")) %>%
-        select(CPI, Date, Region)
-        
+        select(CPI, Date, Region)  
     } else {
       dat_2 <- filter(dat,Year==i) %>%
         # Make the data long
@@ -68,7 +77,9 @@ shape_time_series <- function(path,r){
       rm(dat_2)
     }
   }
-  dat_pivot
+  dat_pivot %>%
+    mutate(CPI_mom = (CPI-lag(CPI))/lag(CPI) * 100) %>%
+    filter(!is.na(CPI_mom))
 }
   
     
@@ -85,15 +96,46 @@ cpi_w_s_c <- shape_time_series(dir.w_s_c, "West South Central")
 
 
 
-###############################################
-##### 2. Match commuting zones to regions #####
-###############################################
+#################################################
+##### 2. Match commuting zones to inflation #####
+#################################################
+
+# 2.1 Match State and CZ
+########################
 
 # Read in table of FIPS, 2000 cz and 1990 cz
 dat_geo <- read_csv2(dir.geo) %>%
   # select only fips and 2000 commuting zones
   select(fips = FIPS, cz2000 = "Commuting Zone ID, 2000") %>%
-  mutate( state = as.numeric(substr(dat_geo$fips,1,2)))
+  # create state index from fips
+  mutate( State = as.numeric(substr(fips,1,2))) %>%
+  select(State, cz2000) %>%
+  unique
+
+# 2.2 Match Region and State
+############################
+
+# create table of states and regions
+reg_states_pivot <-reg_states %>% 
+  gather(Region, States) %>%
+  filter(!is.na(States))
+
+# 2.3 Match inflation to CZ
+###########################
+
+# join to get state-inflation timeseries
+cpi <- rbind(cpi_e_n_c,cpi_e_s_c,cpi_m,cpi_m_a,cpi_n_e,cpi_p,cpi_s_a,cpi_w_n_c,cpi_w_s_c) %>%
+  left_join(reg_states_pivot) %>%
+  select(CPI,CPI_mom, Date, State = States) %>%
+  left_join(dat_geo) %>%
+  select(CPI,CPI_mom, Date, cz2000)
+
+write_csv(cpi, "../SocialInflationExpectation/_intermediate/cpi_cz2000-timeseries.csv")
+
+
+
+
+
 
 
 
