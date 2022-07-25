@@ -54,31 +54,31 @@ shape_time_series <- function(path,r){
   dat <- read_xlsx(path)
     
   for (i in dat$Year) {
+    i
     if (i==dat$Year[1]){
       dat_pivot <- filter(dat,Year==i) %>%
         # Make the data long
         gather(month, CPI) %>% 
         tail(-1) %>%
-        mutate(year = rep(i,12), Region = r) %>%
-        mutate(Date = with(dat_pivot,paste(year,month,sep="-"))) %>%
+        mutate(year = rep(i,12), Region = r)
+      dat_pivot <- mutate(dat_pivot,Date = with(dat_pivot,paste(year,month,sep="-"))) %>%
         mutate(Date = parse_date(Date,"%Y-%b")) %>%
-        select(CPI, Date, Region)  
+        select(Date, Region, CPI)  
     } else {
       dat_2 <- filter(dat,Year==i) %>%
         # Make the data long
         gather(month, CPI) %>% 
         tail(-1) %>%
-        mutate(year = rep(i,12), Region = r) %>%
-        mutate(Date = with(dat_pivot,paste(year,month,sep="-"))) %>%
+        mutate(year = rep(i,12), Region = r)
+      dat_2 <- mutate(dat_2,Date = with(dat_2,paste(year,month,sep="-"))) %>%
         mutate(Date = parse_date(Date,"%Y-%b")) %>%
-        select(CPI, Date, Region)   
+        select(Date, Region, CPI)   
       dat_pivot <- rbind(dat_pivot,dat_2) %>%
         filter(!is.na(CPI))
       rm(dat_2)
     }
   }
-  dat_pivot %>%
-    mutate(CPI_mom = (CPI-lag(CPI))/lag(CPI) * 100) %>%
+  dat_pivot <- mutate(dat_pivot, CPI_mom = (CPI-dplyr::lag(CPI))/dplyr::lag(CPI) * 100) %>%
     filter(!is.na(CPI_mom))
 }
   
