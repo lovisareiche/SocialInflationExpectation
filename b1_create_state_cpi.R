@@ -22,7 +22,6 @@ library(readxl)
 
 #### FILL IN THIS LINE BEFORE RUNNING ####
 
-
 # Geographic IDs
 # https://www.ers.usda.gov/data-products/commuting-zones-and-labor-market-areas/
 dir.geo <- "../SocialInflationExpectation/_input/cz00_eqv_v1.csv"
@@ -54,7 +53,6 @@ shape_time_series <- function(path,r){
   dat <- read_xlsx(path)
     
   for (i in dat$Year) {
-    i
     if (i==dat$Year[1]){
       dat_pivot <- filter(dat,Year==i) %>%
         # Make the data long
@@ -100,6 +98,7 @@ cpi_w_s_c <- shape_time_series(dir.w_s_c, "West South Central")
 ##### 2. Match commuting zones to inflation #####
 #################################################
 
+
 # 2.1 Match State and CZ
 ########################
 
@@ -110,7 +109,9 @@ dat_geo <- read_csv2(dir.geo) %>%
   # create state index from fips
   mutate( State = as.numeric(substr(fips,1,2))) %>%
   select(State, cz2000) %>%
+  arrange(cz2000,State) %>%
   unique
+
 
 # 2.2 Match Region and State
 ############################
@@ -120,6 +121,7 @@ reg_states_pivot <-reg_states %>%
   gather(Region, States) %>%
   filter(!is.na(States))
 
+
 # 2.3 Match inflation to CZ
 ###########################
 
@@ -128,18 +130,15 @@ cpi <- rbind(cpi_e_n_c,cpi_e_s_c,cpi_m,cpi_m_a,cpi_n_e,cpi_p,cpi_s_a,cpi_w_n_c,c
   left_join(reg_states_pivot) %>%
   select(CPI,CPI_mom, Date, State = States) %>%
   left_join(dat_geo) %>%
-  select(CPI,CPI_mom, Date, cz2000)
+  #select(CPI,CPI_mom, Date, cz2000) %>%
+  arrange(cz2000,Date) %>%
+  # Take mean as one commuting zone can be in several states
+  group_by(cz2000,Date) %>%
+  mutate(cpi_mean = mean(CPI)) %>%
+  mutate(cpi_mom_mean = mean(CPI_mom)) %>%
+  ungroup %>%
+  select(cpi_mean, cpi_mom_mean, Date, cz2000) %>%
+  unique
 
 write_csv(cpi, "../SocialInflationExpectation/_intermediate/cpi_cz2000-timeseries.csv")
-
-
-
-
-
-
-
-
-
-
-
 
