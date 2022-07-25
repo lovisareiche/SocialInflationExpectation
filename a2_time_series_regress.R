@@ -66,13 +66,16 @@ ungroup
 ##### Chose covariates you want to control for ##########
 
 dat_covariates <- read_csv("../SocialInflationExpectation/_intermediate/covariates.csv") %>% 
-  select(cz2000, med_hhinc2016, popdensity2010) 
+  select(cz2000, med_hhinc2016, poor_share2010, rent_twobed2015) 
 
 U = uniq(dat_covariates$cz2000)
 a1 = accumarray(U$n,dat_covariates$med_hhinc2016, func = mean)
-a2 = accumarray(U$n,dat_covariates$popdensity2010, func = mean)
+a2 = accumarray(U$n,dat_covariates$poor_share2010, func = mean)
+a3 = accumarray(U$n,dat_covariates$rent_twobed2015, func = mean)
 
-dat_covariates <- tibble(cz2000 = as.character(U$b), popdensity2010 = a2, med_hhinc2016 = a1)
+dat_covariates <- tibble(cz2000 = as.character(U$b), poor_share2010 = a2, med_hhinc2016 = a1, rent_twobed2015 = a3)
+
+dat_cpi <- read_csv("../SocialInflationExpectation/_intermediate/cpi_cz2000-timeseries.csv")
 
 
 #######################################
