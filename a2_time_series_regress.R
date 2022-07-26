@@ -114,18 +114,26 @@ inflex_fe_mod <- plm(inflexp_median ~ sci_weighted_inflation + dist_weighted_inf
 coeftest(inflex_fe_mod)
 
 # estimate the fixed effects regression, control with plm()
-inflex_fe_mod_c <- plm(inflexp_median ~ sci_weighted_inflation_control + dist_weighted_inflation, 
+inflex_fe_mod_c <- plm(inflexp_median ~ sci_weighted_inflation_control + dist_weighted_inflation+ cpi_mom_mean, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "within")
 coeftest(inflex_fe_mod_c)
 
-# estimate the pooled effects regression with plm()
-inflex_po_mod <- plm(inflexp_median ~ sci_weighted_inflation + dist_weighted_inflation, 
+# estimate the pooled effects regression, no control with plm()
+inflex_po_mod <- plm(inflexp_median ~ sci_weighted_inflation + dist_weighted_inflation + cpi_mom_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "pooling")
 coeftest(inflex_po_mod)
+
+
+# estimate the pooled effects regression, control with plm()
+inflex_po_mod_c <- plm(inflexp_median ~ sci_weighted_inflation_control + dist_weighted_inflation + cpi_mom_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
+                     data = regress_dat,
+                     index = c("cz2000", "date"), 
+                     model = "pooling")
+coeftest(inflex_po_mod_c)
 
 
 # Points to Note:
