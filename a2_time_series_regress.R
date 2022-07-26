@@ -1,16 +1,18 @@
 # Purpose: Build the regression table for the time series analyses
-#           and make maps of all time series measures
+#
 # Inputs: 
 #     _intermediate/inflexp_date_cz.csv
 #     _intermediate/sci_weighted_inflation.csv
 #     _intermediate/dist_weighted_inflation.csv
 #     _intermediate/covariates.csv
+#     _intermediate/cpi_cz2000-timeseries.csv
 # Outputs: 
-#     _intermediate/time_series_regress_dat.csv
-# Date: 21/07/202
+#     _output/time_series_regress_dat.csv
+# Date: 21/07/22
 # Steps:
 #     1. Prep all data sources
 #     2. Join all data sources
+#     3. Panel regression
 
 library(tidyverse)
 library(lubridate)
