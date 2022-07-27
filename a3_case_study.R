@@ -69,7 +69,7 @@ cpi_max2 <- cpi_used[cpi_used$cpi_mom_mean == max(cpi_used$cpi_mom_mean),]
 
 inflex_sub1 <- inflex %>%
   group_by(cz2000) %>%
-  # change of current period versus kast period
+  # change of current period versus last period
   mutate(chg_inflex_med = inflexp_median - dplyr::lag(inflexp_median)) %>%
   # only use period identified in case
   filter(date == unique(cpi_max1$Date))
@@ -80,18 +80,42 @@ inflex_sub2 <- inflex %>%
   mutate(chg_inflex_med = inflexp_median - dplyr::lag(inflexp_median)) %>%
   filter(date == unique(cpi_max2$Date))
 
+# Note that this is less than for all commuting zones because for some we do not have data for these specific months
+
 
 # 3.2 Match sci to expectations
 #################################################################
 
-dat <- sci %>%
+# for case 1: high index
+dat1 <- sci_control %>%
+  arrange(user_loc,fr_loc) %>%
   # inflation expectations in the user's location
   inner_join(inflex_sub1, by = c("user_loc" = "cz2000")) %>%
   # share of connections with cpi experience
   group_by(user_loc) %>%
-  summarise(share_high = sum(share_sci[fr_loc %in% cpi_max1$cz2000]), chg_inflex_med) %>%
+  summarise(share_high = sum(share_sci[fr_loc %in% cpi_max1$cz2000]), chg_inflex_med, inflexp_median) %>%
   ungroup %>%
   unique
-  
 
+# for case 2: high rate of change
+dat2 <- sci_control %>%
+  # inflation expectations in the user's location
+  inner_join(inflex_sub2, by = c("user_loc" = "cz2000")) %>%
+  # share of connections with cpi experience
+  group_by(user_loc) %>%
+  summarise(share_high = sum(share_sci[fr_loc %in% cpi_max2$cz2000]), chg_inflex_med, inflexp_median) %>%
+  ungroup %>%
+  unique
+
+# save scatter plot for case 1
+png("../SocialInflationExpectation/_output/case_study_1.png", width = 500, height = 500)
+plot(dat1$share_high,dat1$chg_inflex_med, main = "Case Study 1", xlab = "Share of friends in high inflation region", ylab="Median inflation expectations")
+text(paste("Correlation:", round(cor(dat1$share_high,dat1$chg_inflex_med), 2)), x = 0.2, y = 60)
+dev.off()
+  
+# save scatter plot for case 2
+png("../SocialInflationExpectation/_output/case_study_2.png", width = 500, height = 500)
+plot(dat2$share_high,dat2$chg_inflex_med, main = "Case Study 2", xlab = "Share of friends in high inflation region", ylab="Median inflation expectations")
+text(paste("Correlation:", round(cor(dat2$share_high,dat2$chg_inflex_med), 2)), x = 0.2, y = 60)
+dev.off()
 

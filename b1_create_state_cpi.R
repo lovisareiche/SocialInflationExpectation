@@ -128,7 +128,7 @@ reg_states_pivot <-reg_states %>%
 # join to get state-inflation timeseries
 cpi <- rbind(cpi_e_n_c,cpi_e_s_c,cpi_m,cpi_m_a,cpi_n_e,cpi_p,cpi_s_a,cpi_w_n_c,cpi_w_s_c) %>%
   left_join(reg_states_pivot) %>%
-  select(CPI,CPI_mom, Date, State = States) %>%
+  select(CPI,CPI_mom, Date, State = States, Region) %>%
   left_join(dat_geo) %>%
   #select(CPI,CPI_mom, Date, cz2000) %>%
   arrange(cz2000,Date) %>%
