@@ -9,6 +9,9 @@
 #     2. Match commuting zones to inflation
 
 # This code makes use of the Nakamura data on US states inflation
+# Hazell, J., J. Herre  ̃no, E. Nakamura, and J. Steinsson (2021): “The Slope of the Phillips Curve:
+# Evidence from U.S. States,” Quarterly Journal of Economics, forthcoming
+# https://eml.berkeley.edu/~enakamura/papers/StateCPIData_readme.pdf
 
 library(tidyverse)
 library(lubridate)
@@ -25,7 +28,7 @@ dir.geo <- "../SocialInflationExpectation/_input/cz00_eqv_v1.csv"
 dir.stateid <- "../SocialInflationExpectation/_input/fips_state.xlsx"
 
 # Regional CPI data
-# https://data.bls.gov/cgi-bin/dsrv
+# https://eml.berkeley.edu/~enakamura/papers/statecpi_beta.csv
 dir.cpi <- "../SocialInflationExpectation/_input/statecpi_beta.csv"
 
 #########################################
