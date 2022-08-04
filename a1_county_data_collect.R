@@ -1,6 +1,6 @@
 
 # Purpose: Make two"weighted" measures, 
-#           Social Proximity to Inflation and Physical Proximity to Inflation (not yet achieved)
+#           Social Proximity to Inflation and Physical Proximity to Inflation
 
 # Inputs: 
 #     _input/county_county.tsv
@@ -104,7 +104,7 @@ for (i in unique(dat_sci$user_loc_cz)) {
   if (i==dat_sci$user_loc_cz[1]){
     dat_sci_final <- tibble(user_loc = rep(i,times=length(a)), fr_loc = as.character(U$b), sci = a)
   } else {
-    dat_sci_final <- rbind(dat_sci_final2,tibble(user_loc = as.character(rep(i,times=length(a))), fr_loc = as.character(U$b), sci = a))
+    dat_sci_final <- rbind(dat_sci_final,tibble(user_loc = as.character(rep(i,times=length(a))), fr_loc = as.character(U$b), sci = a))
   }
   
 }
@@ -153,10 +153,12 @@ dat_inflex_agg <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = c
 dat_inflex_agg2 <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = c(date,cz2000)), FUN = median, na.action = na.rm) %>%
   rename(inflexp_median = x) %>%
   inner_join(dat_inflex_agg) %>%
-  filter(!is.na(inflexp_median))
+  filter(!is.na(inflexp_median)) %>%
+  filter(obs>=3) %>%
+  mutate(cz2000 = as.character(cz2000))
 
 
-write_csv(dat_inflex_agg2,"../SocialInflationExpectation/_intermediate/inflexp_date_cz.csv")
+write_csv(dat_inflex_agg2,"../SocialInflationExpectation/_intermediate/inflexp_date_cz_2.csv")
 
 
 
