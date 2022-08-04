@@ -6,6 +6,7 @@
 #     _intermediate/dist_weighted_inflation.csv
 #     _intermediate/covariates.csv
 #     _intermediate/cpi_cz2000-timeseries.csv
+#     _intermediate/cpi_cz2000-timeseries_nakamura.csv
 # Outputs: 
 #     _output/time_series_regress_dat.csv
 # Date: 21/07/22
@@ -21,8 +22,6 @@ library(tigris)
 library(pracma)
 library(plm)
 library(lmtest)
-
-# Throughout we will analyze changes in inflation expectations at a monthly level
 
 
 ####################################
@@ -69,8 +68,8 @@ dat_covariates <- tibble(cz2000 = U$b, poor_share2010 = a2, med_hhinc2016 = a1, 
 
 # Read in CPI data 
 #Built in b1_create_state_cpi
-dat_cpi <- read_csv("../SocialInflationExpectation/_intermediate/cpi_cz2000-timeseries.csv") %>%
-  rename(date = Date) %>%
+dat_cpi <- read_csv("../SocialInflationExpectation/_intermediate/cpi_cz2000-timeseries_nakamura.csv") %>%
+  #rename(date = Date) %>%
   arrange(cz2000, date) %>%
   unique
 
@@ -85,20 +84,20 @@ regress_dat <- dat_inflex %>%
   # Join with covariates (!!! No time variation here !!!)
   left_join(dat_covariates) %>% 
   # Join with cpi (!!! Only availabe in 2018, on regional not cz basis !!!)
-  inner_join(dat_cpi) %>%
+  inner_join(dat_cpi) #%>%
   # Make the lagged versions of our variables
-  group_by(cz2000) %>% 
-  arrange(cz2000, date) %>% 
-  mutate(l1_swi = lag(sci_weighted_inflation),
-         l2_swi = lag(sci_weighted_inflation, 2),
-         l1_dwi = lag(dist_weighted_inflation),
-         l2_dwi = lag(dist_weighted_inflation, 2),
-         l1_median = lag(inflexp_median),
-         l2_median = lag(inflexp_median, 2),
-         l1_cpi_mom = lag(cpi_mom_mean),
-         l2_cpi_mom = lag(cpi_mom_mean,2),
-         cz2000 = as.factor(cz2000)) %>%
-  ungroup
+  #group_by(cz2000) %>% 
+  #arrange(cz2000, date) %>% 
+  #mutate(l1_swi = lag(sci_weighted_inflation),
+  #       l2_swi = lag(sci_weighted_inflation, 2),
+  #       l1_dwi = lag(dist_weighted_inflation),
+  #       l2_dwi = lag(dist_weighted_inflation, 2),
+  #       l1_median = lag(inflexp_median),
+  #       l2_median = lag(inflexp_median, 2),
+  #       l1_cpi_mom = lag(cpi_mom_mean),
+  #       l2_cpi_mom = lag(cpi_mom_mean,2),
+  #       cz2000 = as.factor(cz2000)) %>%
+  #ungroup
 
 write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regress_dat.csv")
 
@@ -109,21 +108,21 @@ write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regres
 
 
 # estimate the fixed effects regression, no control with plm()
-inflex_fe_mod <- plm(inflexp_median ~ sci_weighted_inflation + dist_weighted_inflation + cpi_mom_mean, 
+inflex_fe_mod <- plm(inflexp_median ~ sci_weighted_inflation + dist_weighted_inflation + pi_mean, 
                     data = regress_dat,
                     index = c("cz2000", "date"), 
                     model = "within")
 coeftest(inflex_fe_mod)
 
 # estimate the fixed effects regression, control with plm()
-inflex_fe_mod_c <- plm(inflexp_median ~ sci_weighted_inflation_control + dist_weighted_inflation+ cpi_mom_mean, 
+inflex_fe_mod_c <- plm(inflexp_median ~ sci_weighted_inflation_control + dist_weighted_inflation+ pi_mean, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "within")
 coeftest(inflex_fe_mod_c)
 
 # estimate the pooled effects regression, no control with plm()
-inflex_po_mod <- plm(inflexp_median ~ sci_weighted_inflation + dist_weighted_inflation + cpi_mom_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
+inflex_po_mod <- plm(inflexp_median ~ sci_weighted_inflation + dist_weighted_inflation + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "pooling")
@@ -131,7 +130,7 @@ coeftest(inflex_po_mod)
 
 
 # estimate the pooled effects regression, control with plm()
-inflex_po_mod_c <- plm(inflexp_median ~ sci_weighted_inflation_control + dist_weighted_inflation + cpi_mom_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
+inflex_po_mod_c <- plm(inflexp_median ~ sci_weighted_inflation_control + dist_weighted_inflation + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "pooling")
@@ -144,8 +143,13 @@ coeftest(inflex_po_mod_c)
 # - some cz have only very few people answering the inflation expectations survey so the medians may be driven by very few people
 
 
-png("../SocialInflationExpectation/_intermediate/SCI weighted.png", width = 500, height = 500)
+png("../SocialInflationExpectation/_intermediate/SCI weighted_no control.png", width = 500, height = 500)
 plot(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation, main = "SCI weighted", xlab = "Median expectation", ylab="SCI weighted expectation")
+text(paste("Correlation:", round(cor(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation), 2)), x = -50, y = 70)
+dev.off()
+
+png("../SocialInflationExpectation/_intermediate/SCI weighted.png", width = 500, height = 500)
+plot(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation_control, main = "SCI weighted", xlab = "Median expectation", ylab="SCI weighted expectation")
 text(paste("Correlation:", round(cor(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation), 2)), x = -50, y = 70)
 dev.off()
 
@@ -154,3 +158,19 @@ png("../SocialInflationExpectation/_intermediate/Dist weighted.png", width = 500
 plot(regress_dat$inflexp_median,regress_dat$dist_weighted_inflation, main = "Dist weighted", xlab = "Median expectation", ylab="SCI weighted expectation")
 text(paste("Correlation:", round(cor(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation), 2)), x = -50, y = 70)
 dev.off()
+
+
+#####################################
+##### 4. Write regression table #####
+#####################################
+
+
+install.packages("stargazer")
+library(stargazer)
+
+dat <- data.frame(regress_dat) %>%
+  select(inflexp_median,dist_weighted_inflation,sci_weighted_inflation,sci_weighted_inflation_control,poor_share2010,med_hhinc2016,rent_twobed2015)
+
+stargazer(dat)
+
+stargazer(inflex_fe_mod, inflex_fe_mod_c, inflex_po_mod, inflex_po_mod_c, title="Regression Results", align=TRUE)
