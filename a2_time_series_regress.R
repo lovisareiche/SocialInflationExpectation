@@ -150,7 +150,7 @@ dev.off()
 
 png("../SocialInflationExpectation/_intermediate/SCI weighted.png", width = 500, height = 500)
 plot(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation_control, main = "SCI weighted", xlab = "Median expectation", ylab="SCI weighted expectation")
-text(paste("Correlation:", round(cor(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation), 2)), x = -50, y = 70)
+text(paste("Correlation:", round(cor(regress_dat$inflexp_median,regress_dat$sci_weighted_inflation_control), 2)), x = -50, y = 70)
 dev.off()
 
 
