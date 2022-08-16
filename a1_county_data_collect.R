@@ -226,6 +226,8 @@ for (i in unique(county_county_dist$cz1)) {
 
 
 curr_dat <- dat_dist_final %>%
+  # remove own distance
+  filter(cz1!=cz2) %>%
   # Join in the Inflation data
   inner_join(dat_inflex_agg2, by=c("cz2"="cz2000")) %>% 
   # Collapse and make the final weighted measure
