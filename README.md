@@ -8,3 +8,6 @@ Since we are using commuting zones as geographical unit we have to convert the S
 
 ### a2: Combines all variables to allow for a panel regression
 Creates a combined dataset and runs fixed effects regression
+
+### a3: Case Study
+Identifies inflation events and checks how connectedness to this region impacts expectations
