@@ -84,7 +84,9 @@ regress_dat <- dat_inflex %>%
   # Join with covariates (!!! No time variation here !!!)
   left_join(dat_covariates) %>% 
   # Join with cpi (!!! Only availabe in 2018, on regional not cz basis !!!)
-  inner_join(dat_cpi) #%>%
+  inner_join(dat_cpi) %>%
+  # name as in paper
+  rename(SPI = sci_weighted_inflation, SPI_control = sci_weighted_inflation_control, PPI = dist_weighted_inflation) #%>%
   # Make the lagged versions of our variables
   #group_by(cz2000) %>% 
   #arrange(cz2000, date) %>% 
@@ -108,21 +110,21 @@ write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regres
 
 
 # estimate the fixed effects regression, no control with plm()
-inflex_fe_mod <- plm(inflexp_median ~ sci_weighted_inflation + dist_weighted_inflation + pi_mean, 
+inflex_fe_mod <- plm(inflexp_median ~ SPI + PPI + pi_mean, 
                     data = regress_dat,
                     index = c("cz2000", "date"), 
                     model = "within")
 coeftest(inflex_fe_mod)
 
 # estimate the fixed effects regression, control with plm()
-inflex_fe_mod_c <- plm(inflexp_median ~ sci_weighted_inflation_control + dist_weighted_inflation+ pi_mean, 
+inflex_fe_mod_c <- plm(inflexp_median ~ SPI_control + PPI + pi_mean, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "within")
 coeftest(inflex_fe_mod_c)
 
 # estimate the pooled effects regression, no control with plm()
-inflex_po_mod <- plm(inflexp_median ~ sci_weighted_inflation + dist_weighted_inflation + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
+inflex_po_mod <- plm(inflexp_median ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "pooling")
@@ -130,7 +132,7 @@ coeftest(inflex_po_mod)
 
 
 # estimate the pooled effects regression, control with plm()
-inflex_po_mod_c <- plm(inflexp_median ~ sci_weighted_inflation_control + dist_weighted_inflation + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
+inflex_po_mod_c <- plm(inflexp_median ~ SPI_control + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "pooling")
@@ -169,7 +171,7 @@ install.packages("stargazer")
 library(stargazer)
 
 dat <- data.frame(regress_dat) %>%
-  select(inflexp_median,dist_weighted_inflation,sci_weighted_inflation,sci_weighted_inflation_control,poor_share2010,med_hhinc2016,rent_twobed2015)
+  select(inflexp_median,PPI,SPI,SPI_control,poor_share2010,med_hhinc2016,rent_twobed2015)
 
 stargazer(dat)
 
