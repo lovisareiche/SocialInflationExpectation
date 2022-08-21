@@ -1,4 +1,4 @@
-
+rm(list=ls())
 # Purpose: Make two"weighted" measures, 
 #           Social Proximity to Inflation and Physical Proximity to Inflation
 
@@ -166,31 +166,43 @@ write_csv(dat_inflex_agg2,"../SocialInflationExpectation/_intermediate/inflexp_d
 ##### 3. Create Proximity to Inflation #####
 ############################################
 
+# if run it from here
+rm(list = ls())
 
-# 3.2 Social Proximity (by SCI)
+# Geographic IDs
+# https://www.ers.usda.gov/data-products/commuting-zones-and-labor-market-areas/
+dir.geo <- "../SocialInflationExpectation/_input/cz00_eqv_v1.csv"
+# Distance
+# https://data.nber.org/data/county-distance-database.html
+dir.county_county_dist <- "../SocialInflationExpectation/_input/sf12010countydistancemiles.csv"
+
+
+dat_inflex_agg2 <- read_csv("../SocialInflationExpectation/_intermediate/inflexp_date_cz_2.csv")
+dat_sci_final <- read_tsv("../SocialInflationExpectation/_intermediate/sci_cz_cz.tsv")
+
+dat_geo <- read_csv2(dir.geo) %>%
+  # select only fips and 2000 commuting zones
+  select(fips = FIPS, cz2000 = "Commuting Zone ID, 2000", cz1990 = "Commuting Zone ID, 1990")
+
+
+# 3.1 Social Proximity (by SCI)
 ################################
 
 
 curr_dat <- dat_sci_final %>%
-  # Join in the Inflation data
-  inner_join(dat_inflex_agg2, by=c("fr_loc"="cz2000")) %>% 
+  # Join in the Inflation data for foreign cz
+  inner_join(dat_inflex_agg2, by=c("fr_loc"="cz2000")) %>%
+  rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
+  # Join inflation exp for local cz by date
+  inner_join(dat_inflex_agg2, by=c("user_loc"="cz2000","date")) %>%
+  rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
   # Collapse and make the final weighted measure
   group_by(user_loc, date) %>% 
-  summarise(sci_weighted_inflation = sum(inflexp_mean*share_sci)) %>%
+  # compute spi using differences
+  summarise(SPI = sum((inflexp_mean_fr-inflexp_mean_user)*share_sci)) %>%
   ungroup
 
-write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/sci_weighted_inflation.csv")
-
-curr_dat <- dat_sci_final_control %>%
-  # Join in the Inflation data
-  inner_join(dat_inflex_agg2, by=c("fr_loc"="cz2000")) %>% 
-  # Collapse and make the final weighted measure
-  group_by(user_loc, date) %>% 
-  summarise(sci_weighted_inflation = sum(inflexp_mean*share_sci)) %>%
-  ungroup
-
-write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/sci_weighted_inflation_control.csv")
-
+write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/SPI.csv")
 
 
 # 3.2 Physiscal Proximity (by distance)
@@ -226,14 +238,18 @@ for (i in unique(county_county_dist$cz1)) {
 
 
 curr_dat <- dat_dist_final %>%
-  # remove own distance
-  filter(cz1!=cz2) %>%
+  summarise(cz1 = as.double(cz1), cz2 = as.double(cz2), mi_to_cz) %>%
   # Join in the Inflation data
   inner_join(dat_inflex_agg2, by=c("cz2"="cz2000")) %>% 
+  rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
+  # Join inflation exp for local cz by date
+  inner_join(dat_inflex_agg2, by=c("cz1"="cz2000","date")) %>%
+  rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+  
   # Collapse and make the final weighted measure
   group_by(cz1, date) %>% 
-  summarise(dist_weighted_inflation = sum(inflexp_mean/(1+mi_to_cz))) %>%
+  summarise(PPI = sum((inflexp_mean_fr-inflexp_mean_user)/(1+mi_to_cz))) %>%
   ungroup
 
-write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/dist_weighted_inflation.csv")
+write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/PPI.csv")
 
