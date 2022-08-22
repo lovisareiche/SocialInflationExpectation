@@ -23,7 +23,7 @@ library(pracma)
 library(plm)
 library(lmtest)
 
-
+rm(list=ls())
 ####################################
 ##### 1. Prep all data sources #####
 ####################################
@@ -74,11 +74,16 @@ dat_covariates <- tibble(cz2000 = U$b, poor_share2010 = a2, med_hhinc2016 = a1, 
 
 
 # Read in CPI data 
-#Built in b1_create_state_cpi
+# Built in b1_create_state_cpi
 dat_cpi <- read_csv("../SocialInflationExpectation/_intermediate/cpi_cz2000-timeseries_nakamura.csv") %>%
   #rename(date = Date) %>%
   arrange(cz2000, date) %>%
   unique
+
+# Read in outwardness
+# Built in a1_county_data_collect
+dat_outward <- read_csv("../SocialInflationExpectation/_intermediate/outwardness.csv") %>%
+  rename(cz2000 = user_loc)
 
 
 #######################################
@@ -90,6 +95,8 @@ regress_dat <- dat_inflex %>%
   inner_join(dat) %>% 
   # Join with covariates (!!! No time variation here !!!)
   left_join(dat_covariates) %>% 
+  # Join with outwardness (!!! No time variation here !!!)
+  left_join(dat_outward) %>% 
   # Join with cpi (!!! Only availabe in 2018, on regional not cz basis !!!)
   inner_join(dat_cpi) 
   # name as in paper
@@ -127,7 +134,7 @@ inflex_po_mod_1 <- plm(inflexp_median ~ SPI,
                      model = "pooling")
 coeftest(inflex_po_mod_1)
 
-inflex_po_mod_2 <- plm(inflexp_median ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
+inflex_po_mod_2 <- plm(inflexp_median ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "pooling")
@@ -150,11 +157,11 @@ dev.off()
 #############################
 
 
-install.packages("stargazer")
+#install.packages("stargazer")
 library(stargazer)
 
 dat <- data.frame(regress_dat) %>%
-  select(inflexp_median,PPI,SPI,pi_mean, poor_share2010,med_hhinc2016,rent_twobed2015)
+  select(inflexp_median,PPI,SPI,pi_mean, poor_share2010,med_hhinc2016,rent_twobed2015,outwardness)
 
 stargazer(dat)
 
@@ -174,3 +181,16 @@ cor(regress_dat$PPI,regress_dat$SPI)
 
 # 4.1 Outwardness Ratio
 #######################
+# Split sample below and above outwardness mean
+
+mo <- mean(dat_outward$outwardness)
+# I noticed that the mean here is lower than the mean in the stargazer summary statistic. Could be because there it shows up multiple times per observation due to the time component...
+
+# sample with outwardness below mean
+sample1 <- regress_dat %>%
+  filter(outwardness <= mo)
+
+# sample with outwardness above mean
+sample2 <- regress_dat %>%
+  filter(outwardness > mo)
+
