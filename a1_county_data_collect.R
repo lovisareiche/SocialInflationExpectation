@@ -116,15 +116,19 @@ dat_sci_final <- dat_sci_final %>%
   mutate(share_sci = sci/total_sci) %>%
   ungroup
 
-dat_sci_final_control <- dat_sci_final %>%
-  group_by(user_loc) %>%
-  filter(user_loc!=fr_loc) %>%
-  mutate(total_sci = sum(sci)) %>%
-  mutate(share_sci = sci/total_sci) %>%
-  ungroup
+outwardness_dat <- dat_sci_final %>%
+  summarise(outwardness = share_sci[user_loc==fr_loc], user_loc = unique(user_loc))
+
+# dat_sci_final_control <- dat_sci_final %>%
+#   group_by(user_loc) %>%
+#   filter(user_loc!=fr_loc) %>%
+#   mutate(total_sci = sum(sci)) %>%
+#   mutate(share_sci = sci/total_sci) %>%
+#   ungroup
 
 write_tsv(dat_sci_final,"../SocialInflationExpectation/_intermediate/sci_cz_cz.tsv")
-write_tsv(dat_sci_final_control,"../SocialInflationExpectation/_intermediate/sci_cz_cz_control.tsv")
+# write_tsv(dat_sci_final_control,"../SocialInflationExpectation/_intermediate/sci_cz_cz_control.tsv")
+write_csv(outwardness_dat,"../SocialInflationExpectation/_intermediate/outwardness.csv")
 
 
 # 2.2 aggregate inflation expectations on cz2000 level
