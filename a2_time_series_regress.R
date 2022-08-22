@@ -35,21 +35,21 @@ dat_inflex <- read_csv("../SocialInflationExpectation/_intermediate/inflexp_date
 
 # Read in SCI-weighted inflation (Social Proximity to Inflation)
 # Built in a1_county_data_collect.R
-sci_weighted_inflation_control <- read_csv("../SocialInflationExpectation/_intermediate/sci_weighted_inflation_control.csv") %>%
-  rename(sci_weighted_inflation_control=sci_weighted_inflation)
-sci_weighted_inflation <- read_csv("../SocialInflationExpectation/_intermediate/sci_weighted_inflation.csv")
+# sci_weighted_inflation_control <- read_csv("../SocialInflationExpectation/_intermediate/sci_weighted_inflation_control.csv") %>%
+#   rename(sci_weighted_inflation_control=sci_weighted_inflation)
+# sci_weighted_inflation <- read_csv("../SocialInflationExpectation/_intermediate/sci_weighted_inflation.csv")
 SPI <- read_csv("../SocialInflationExpectation/_intermediate/SPI.csv")
 
 # Read in distance-weighted inflation (Physical Proximity to Inflation)
 # Built in a1_county_data_collect.R
-dist_weighted_inflation <- read_csv("../SocialInflationExpectation/_intermediate/dist_weighted_inflation.csv")
+# dist_weighted_inflation <- read_csv("../SocialInflationExpectation/_intermediate/dist_weighted_inflation.csv")
 PPI <- read_csv("../SocialInflationExpectation/_intermediate/PPI.csv")
 
 # Join the weighted cases measures
-weighted_inflation_dat <- dist_weighted_inflation %>% 
-  left_join(sci_weighted_inflation_control, by=c("cz1"="user_loc", "date"="date")) %>%
-  left_join(sci_weighted_inflation, by=c("cz1"="user_loc", "date"="date")) %>%
-  rename(cz2000 = cz1)
+# weighted_inflation_dat <- dist_weighted_inflation %>% 
+#   left_join(sci_weighted_inflation_control, by=c("cz1"="user_loc", "date"="date")) %>%
+#   left_join(sci_weighted_inflation, by=c("cz1"="user_loc", "date"="date")) %>%
+#   rename(cz2000 = cz1)
 
 
 # Join the weighted cases measures
@@ -93,20 +93,8 @@ regress_dat <- dat_inflex %>%
   # Join with cpi (!!! Only availabe in 2018, on regional not cz basis !!!)
   inner_join(dat_cpi) 
   # name as in paper
-  #rename(SPI = sci_weighted_inflation, SPI_control = sci_weighted_inflation_control, PPI = dist_weighted_inflation) #%>%
-  # Make the lagged versions of our variables
-  #group_by(cz2000) %>% 
-  #arrange(cz2000, date) %>% 
-  #mutate(l1_swi = lag(sci_weighted_inflation),
-  #       l2_swi = lag(sci_weighted_inflation, 2),
-  #       l1_dwi = lag(dist_weighted_inflation),
-  #       l2_dwi = lag(dist_weighted_inflation, 2),
-  #       l1_median = lag(inflexp_median),
-  #       l2_median = lag(inflexp_median, 2),
-  #       l1_cpi_mom = lag(cpi_mom_mean),
-  #       l2_cpi_mom = lag(cpi_mom_mean,2),
-  #       cz2000 = as.factor(cz2000)) %>%
-  #ungroup
+  # rename(SPI = sci_weighted_inflation, SPI_control = sci_weighted_inflation_control, PPI = dist_weighted_inflation)
+
 
 write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regress_dat.csv")
 
@@ -115,57 +103,74 @@ write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regres
 ##### 3. Panel regression #####
 ###############################
 
+
+# 3.1. Estimate fixed effects and pooled ols
+############################################
+
 # estimate the fixed effects regression, no control with plm()
-inflex_fe_mod <- plm(inflexp_median ~ SPI + PPI + pi_mean, 
+inflex_fe_mod_1 <- plm(inflexp_median ~ SPI, 
                     data = regress_dat,
                     index = c("cz2000", "date"), 
                     model = "within")
-coeftest(inflex_fe_mod)
+coeftest(inflex_fe_mod_1)
+
+inflex_fe_mod_2 <- plm(inflexp_median ~ SPI + PPI + pi_mean, 
+                     data = regress_dat,
+                     index = c("cz2000", "date"), 
+                     model = "within")
+coeftest(inflex_fe_mod_2)
 
 # estimate the pooled effects regression, no control with plm()
-inflex_po_mod <- plm(inflexp_median ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
+inflex_po_mod_1 <- plm(inflexp_median ~ SPI, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "pooling")
-coeftest(inflex_po_mod)
+coeftest(inflex_po_mod_1)
 
-
-
-# estimate the pooled effects regression, no control with plm()
-inflex_po_mod_test1 <- plm(inflexp_median ~ SPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
+inflex_po_mod_2 <- plm(inflexp_median ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "pooling")
-coeftest(inflex_po_mod_test1)
+coeftest(inflex_po_mod_2)
 
 
-
-# Points to Note:
-# - covariates are time invariant (not in reality but in data we have) and thus not included in fixed effects regression
-# - can control for friends having same experience in same cz by excluding same cz from measure
-# - some cz have only very few people answering the inflation expectations survey so the medians may be driven by very few people
-
+# 3.2. Plot scatters for check 
+##############################
 
 png("../SocialInflationExpectation/_intermediate/SPI.png", width = 500, height = 500)
-plot(regress_dat$inflexp_median,regress_dat$SPI, main = "SCI weighted", xlab = "Median expectation", ylab="SCI weighted expectation")
+plot(regress_dat$inflexp_median,regress_dat$SPI, xlab = "Median expectation", ylab="SPI")
 dev.off()
 
 png("../SocialInflationExpectation/_intermediate/PPI.png", width = 500, height = 500)
-plot(regress_dat$inflexp_median,regress_dat$PPI, main = "Dist weighted", xlab = "Median expectation", ylab="SCI weighted expectation")
+plot(regress_dat$inflexp_median,regress_dat$PPI, xlab = "Median expectation", ylab="PPI")
 dev.off()
 
 
-#####################################
-##### 4. Write regression table #####
-#####################################
+# 3.3. Write regression table 
+#############################
 
 
 install.packages("stargazer")
 library(stargazer)
 
 dat <- data.frame(regress_dat) %>%
-  select(inflexp_median,PPI,SPI,SPI_control,poor_share2010,med_hhinc2016,rent_twobed2015)
+  select(inflexp_median,PPI,SPI,pi_mean, poor_share2010,med_hhinc2016,rent_twobed2015)
 
 stargazer(dat)
 
-stargazer(inflex_fe_mod, inflex_fe_mod_c, inflex_po_mod, inflex_po_mod_c, title="Regression Results", align=TRUE)
+stargazer(inflex_fe_mod_1, inflex_fe_mod_2, inflex_po_mod_1, inflex_po_mod_2, title="Regression Results", align=TRUE)
+
+
+# 3.4 Check correlation 
+#######################
+
+cor(regress_dat$PPI,regress_dat$SPI)
+
+
+############################
+##### 4. Further ideas #####
+############################
+
+
+# 4.1 Outwardness Ratio
+#######################
