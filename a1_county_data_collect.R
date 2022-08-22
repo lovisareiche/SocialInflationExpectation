@@ -117,7 +117,7 @@ dat_sci_final <- dat_sci_final %>%
   ungroup
 
 outwardness_dat <- dat_sci_final %>%
-  summarise(outwardness = share_sci[user_loc==fr_loc], user_loc = unique(user_loc))
+  summarise(outwardness = (1-share_sci[user_loc==fr_loc]), user_loc = unique(user_loc))
 
 # dat_sci_final_control <- dat_sci_final %>%
 #   group_by(user_loc) %>%
