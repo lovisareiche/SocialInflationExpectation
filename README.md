@@ -11,3 +11,12 @@ Creates a combined dataset and runs fixed effects regression
 
 ### a3: Case Study
 Identifies inflation events and checks how connectedness to this region impacts expectations
+
+## Helpers
+
+### b1: Allocate inflation timeseries to each CZ2000
+Using regional US Bureau of Labour Statistics Data
+
+### b2: Allocate inflation timeseries to each CZ2000
+Using State level data from Hazell 2022
+
