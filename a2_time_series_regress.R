@@ -181,6 +181,7 @@ cor(regress_dat$PPI,regress_dat$SPI)
 
 # 4.1 Outwardness Ratio
 #######################
+
 # Split sample below and above outwardness mean
 
 mo <- mean(dat_outward$outwardness)
@@ -194,3 +195,40 @@ sample1 <- regress_dat %>%
 sample2 <- regress_dat %>%
   filter(outwardness > mo)
 
+# Run same regression split for both samples
+
+# estimate the fixed effects regression, no control with plm()
+inflex_fe_s1 <- plm(inflexp_median ~ SPI + PPI + pi_mean, 
+                       data = sample1,
+                       index = c("cz2000", "date"), 
+                       model = "within")
+coeftest(inflex_fe_s1)
+
+# estimate the pooled effects regression, no control with plm()
+inflex_po_s1 <- plm(inflexp_median ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
+                       data = sample1,
+                       index = c("cz2000", "date"), 
+                       model = "pooling")
+coeftest(inflex_po_s1)
+
+# estimate the fixed effects regression, no control with plm()
+inflex_fe_s2 <- plm(inflexp_median ~ SPI + PPI + pi_mean, 
+                             data = sample2,
+                             index = c("cz2000", "date"), 
+                             model = "within")
+coeftest(inflex_fe_s1)
+
+# estimate the pooled effects regression, no control with plm()
+inflex_po_s2 <- plm(inflexp_median ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
+                             data = sample2,
+                             index = c("cz2000", "date"), 
+                             model = "pooling")
+coeftest(inflex_po_s2)
+
+
+# Write regression table
+
+#install.packages("stargazer")
+#library(stargazer)
+
+stargazer(inflex_fe_s1, inflex_po_s1, inflex_fe_s2, inflex_po_s2, title="Regression Results Split by Outwardness", align=TRUE, label = "tab:regout")
