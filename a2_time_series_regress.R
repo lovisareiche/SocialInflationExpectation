@@ -22,6 +22,7 @@ library(tigris)
 library(pracma)
 library(plm)
 library(lmtest)
+library(tikzDevice)
 
 rm(list=ls())
 ####################################
@@ -98,9 +99,10 @@ regress_dat <- dat_inflex %>%
   # Join with outwardness (!!! No time variation here !!!)
   left_join(dat_outward) %>% 
   # Join with cpi (!!! Only availabe in 2018, on regional not cz basis !!!)
-  inner_join(dat_cpi) 
+  inner_join(dat_cpi) %>%
   # name as in paper
   # rename(SPI = sci_weighted_inflation, SPI_control = sci_weighted_inflation_control, PPI = dist_weighted_inflation)
+  mutate(cz2000 = factor(cz2000), date = factor(date))
 
 
 write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regress_dat.csv")
@@ -114,43 +116,52 @@ write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regres
 # 3.1. Estimate fixed effects and pooled ols
 ############################################
 
-# estimate the fixed effects regression, no control with plm()
-inflex_fe_mod_1 <- plm(inflexp_median ~ SPI, 
+# estimate the fixed effects regression with plm()
+fe1 <- plm(inflexp_median ~ SPI, 
                     data = regress_dat,
                     index = c("cz2000", "date"), 
                     model = "within")
-coeftest(inflex_fe_mod_1)
+# using robust standard errors
+coeftest(fe1, vcov. = vcovHC, type = "HC1")
 
-inflex_fe_mod_2 <- plm(inflexp_median ~ SPI + PPI + pi_mean, 
+fe2 <- plm(inflexp_median ~ SPI + PPI + pi_mean, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "within")
-coeftest(inflex_fe_mod_2)
+coeftest(fe2, vcov. = vcovHC, type = "HC1")
 
-# estimate the pooled effects regression, no control with plm()
-inflex_po_mod_1 <- plm(inflexp_median ~ SPI, 
+# estimate the pooled effects regression with plm()
+po1 <- plm(inflexp_median ~ SPI, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "pooling")
-coeftest(inflex_po_mod_1)
+coeftest(po1, vcov. = vcovHC, type = "HC1")
 
-inflex_po_mod_2 <- plm(inflexp_median ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
+po2 <- plm(inflexp_median ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "pooling")
-coeftest(inflex_po_mod_2)
+coeftest(po2, vcov. = vcovHC, type = "HC1")
 
 
 # 3.2. Plot scatters for check 
 ##############################
 
-png("../SocialInflationExpectation/_intermediate/SPI.png", width = 500, height = 500)
-plot(regress_dat$inflexp_median,regress_dat$SPI, xlab = "Median expectation", ylab="SPI")
-dev.off()
+windowsFonts(A = windowsFont("ComputerModern"))
 
-png("../SocialInflationExpectation/_intermediate/PPI.png", width = 500, height = 500)
-plot(regress_dat$inflexp_median,regress_dat$PPI, xlab = "Median expectation", ylab="PPI")
-dev.off()
+plot(x = regress_dat$inflexp_median, 
+     y = regress_dat$SPI,
+     family="ComputerModern",
+     xlab = "Median Inflation Expectations",
+     ylab = "Social Proximity to Inflation",
+     pch = 20, 
+     col = "steelblue")
+
+
+# add the regression line to plot
+abline(inflex_fe2, lwd = 1.5)
+
+
 
 
 # 3.3. Write regression table 
@@ -165,7 +176,7 @@ dat <- data.frame(regress_dat) %>%
 
 stargazer(dat)
 
-stargazer(inflex_fe_mod_1, inflex_fe_mod_2, inflex_po_mod_1, inflex_po_mod_2, title="Regression Results", align=TRUE)
+stargazer(inflex_fe1, inflex_fe2, inflex_po1, inflex_po2, title="Regression Results", align=TRUE)
 
 
 # 3.4 Check correlation 
@@ -232,3 +243,18 @@ coeftest(inflex_po_s2)
 #library(stargazer)
 
 stargazer(inflex_fe_s1, inflex_po_s1, inflex_fe_s2, inflex_po_s2, title="Regression Results Split by Outwardness", align=TRUE, label = "tab:regout")
+
+
+
+# 4.2 Time Fixed Effects
+########################
+
+# via plm()
+tefe <- plm(inflexp_median ~ SPI + PPI + pi_mean, 
+                        data = regress_dat,
+                        index = c("cz2000", "date"), 
+                        model = "within", 
+                        effect = "twoways")
+
+stargazer(fe1,fe2,po1,po2,tefe,title="Regression Results",align=TRUE, label = "tab:regout", model.names = TRUE)
+
