@@ -108,13 +108,19 @@ dat_sci <- read_tsv(dir.county_county_sci) %>%
   inner_join(dat_pop, by = c("fr_loc"="fips")) %>%
   rename(fr_loc_pop = pop) 
 
+# Functions for weighting
+
+# type 1
+#---------------------------------------------------------------------------------------------------
+
+weighting_type1 <- function(dat){
 # Collapse by combining all from one location
-for (i in unique(dat_sci$user_loc_cz)) {
+for (i in unique(dat$user_loc_cz)) {
   
   print(i)
   
   # create subset for cz2000 i
-  us_subset <- filter(dat_sci,user_loc_cz == i)
+  us_subset <- filter(dat,user_loc_cz == i)
   
   # split it by user loc counties to make sure we weigh all
   for (ii in unique(us_subset$user_loc)){
@@ -148,15 +154,74 @@ for (i in unique(dat_sci$user_loc_cz)) {
   
   # collapse all user locs into one
   if (i==dat_sci$user_loc_cz[1]){
-    dat_sci_final <- tibble(user_loc = rep(i,times=length(a)), fr_loc = as.character(U$b), sci = a)
+    dat_final <- tibble(user_loc = rep(i,times=length(a)), fr_loc = as.character(U$b), sci = a)
   } else {
-    dat_sci_final <- rbind(dat_sci_final,tibble(user_loc = as.character(rep(i,times=length(a))), fr_loc = as.character(U$b), sci = a))
+    dat_final <- rbind(dat_final,tibble(user_loc = as.character(rep(i,times=length(a))), fr_loc = as.character(U$b), sci = a))
   }
-  
 }
+}
+#---------------------------------------------------------------------------------------------------
 
-# clean up
-rm(us_subset, us_subset_sub,a,U,i,ii)
+# type 2: weigh strength of connection by population in own zone
+#---------------------------------------------------------------------------------------------------
+weighting_type2 <- function(dat){
+  # Collapse by combining all from one location
+  for (i in unique(dat$user_loc_cz)) {
+    
+    print(i)
+    
+    # create subset for cz2000 i
+    us_subset <- filter(dat,user_loc_cz == i)
+  
+    # index of each county that occurs within this cz2000
+    U = uniq(us_subset$fr_loc_cz)
+    
+    # acummulate sci
+    a = accumarray(U$n,us_subset$scaled_sci)
+    
+    # collapse all user locs into one
+    if (i==dat_sci$user_loc_cz[1]){
+      dat_final <- tibble(user_loc = rep(i,times=length(a)), fr_loc = as.character(U$b), sci = a)
+    } else {
+      dat_final <- rbind(dat_final,tibble(user_loc = as.character(rep(i,times=length(a))), fr_loc = as.character(U$b), sci = a))
+    }
+  }
+  dat_final
+}
+#---------------------------------------------------------------------------------------------------
+
+# type 3: No weighting
+#---------------------------------------------------------------------------------------------------
+no_weighting <- function(dat){
+  # Collapse by combining all from one location
+  for (i in unique(dat$user_loc_cz)) {
+    
+    print(i)
+    
+    # create subset for cz2000 i
+    us_subset <- filter(dat,user_loc_cz == i)
+    
+    # index of each county that occurs within this cz2000
+    U = uniq(us_subset$fr_loc_cz)
+    
+    # acummulate sci
+    a = accumarray(U$n,us_subset$scaled_sci)
+    
+    # collapse all user locs into one
+    if (i==dat_sci$user_loc_cz[1]){
+      dat_final <- tibble(user_loc = rep(i,times=length(a)), fr_loc = as.character(U$b), sci = a)
+    } else {
+      dat_final <- rbind(dat_final,tibble(user_loc = as.character(rep(i,times=length(a))), fr_loc = as.character(U$b), sci = a))
+    }
+  }
+  dat_final
+}
+#---------------------------------------------------------------------------------------------------
+
+
+dat_sci_final <- weighting_type1(dat_sci)
+dat_sci_final_no <- no_weighting(dat_sci)
+
 
 # Get the share of total SCI from each county
 dat_sci_final <- dat_sci_final %>%
@@ -168,15 +233,8 @@ dat_sci_final <- dat_sci_final %>%
 outwardness_dat <- dat_sci_final %>%
   summarise(outwardness = (1-share_sci[user_loc==fr_loc]), user_loc = unique(user_loc))
 
-# dat_sci_final_control <- dat_sci_final %>%
-#   group_by(user_loc) %>%
-#   filter(user_loc!=fr_loc) %>%
-#   mutate(total_sci = sum(sci)) %>%
-#   mutate(share_sci = sci/total_sci) %>%
-#   ungroup
 
 write_tsv(dat_sci_final,"../SocialInflationExpectation/_intermediate/sci_cz_cz.tsv")
-# write_tsv(dat_sci_final_control,"../SocialInflationExpectation/_intermediate/sci_cz_cz_control.tsv")
 write_csv(outwardness_dat,"../SocialInflationExpectation/_intermediate/outwardness.csv")
 
 
