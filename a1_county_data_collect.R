@@ -1,4 +1,3 @@
-rm(list=ls())
 # Purpose: Make two"weighted" measures, 
 #           Social Proximity to Inflation and Physical Proximity to Inflation
 
@@ -110,10 +109,9 @@ dat_sci <- read_tsv(dir.county_county_sci) %>%
 
 # Functions for weighting
 
-# type 1
+# type 3: use weight of each county in aggregation to commuting zone
 #---------------------------------------------------------------------------------------------------
-
-weighting_type1 <- function(dat){
+weighting_type3 <- function(dat){
 # Collapse by combining all from one location
 for (i in unique(dat$user_loc_cz)) {
   
@@ -121,6 +119,8 @@ for (i in unique(dat$user_loc_cz)) {
   
   # create subset for cz2000 i
   us_subset <- filter(dat,user_loc_cz == i)
+  
+  # 1. Compute population share of each foreign county in its commuting zone
   
   # split it by user loc counties to make sure we weigh all
   for (ii in unique(us_subset$user_loc)){
@@ -138,11 +138,16 @@ for (i in unique(dat$user_loc_cz)) {
     } else {
       S <- rbind(S,us_subset_sub)
     }
-    }
+  }
+  
+  # 2. Compute population share of each user county in the commuting zone
+  
   S <- S %>%
     # weight of county within user commuting zone
     mutate(weight_user = user_loc_pop/sum(unique(user_loc_pop))) %>%
-    # weighted sci
+    
+    # 3. Compute the weighted SCI
+    
     mutate(weighted_sci = scaled_sci * weight_fr * weight_user)
 
   
@@ -162,7 +167,7 @@ for (i in unique(dat$user_loc_cz)) {
 }
 #---------------------------------------------------------------------------------------------------
 
-# type 2: weigh strength of connection by population in own zone
+# type 2: weigh strength of connection by population in the two counties combined
 #---------------------------------------------------------------------------------------------------
 weighting_type2 <- function(dat){
   # Collapse by combining all from one location
@@ -171,13 +176,14 @@ weighting_type2 <- function(dat){
     print(i)
     
     # create subset for cz2000 i
-    us_subset <- filter(dat,user_loc_cz == i)
+    us_subset <- filter(dat,user_loc_cz == i) %>%
+      mutate(weighted_sci = scaled_sci/(user_loc_pop + fr_loc_pop))
   
     # index of each county that occurs within this cz2000
     U = uniq(us_subset$fr_loc_cz)
     
     # acummulate sci
-    a = accumarray(U$n,us_subset$scaled_sci)
+    a = accumarray(U$n,us_subset$weighted_sci)
     
     # collapse all user locs into one
     if (i==dat_sci$user_loc_cz[1]){
@@ -190,7 +196,7 @@ weighting_type2 <- function(dat){
 }
 #---------------------------------------------------------------------------------------------------
 
-# type 3: No weighting
+# type 1: No weighting
 #---------------------------------------------------------------------------------------------------
 no_weighting <- function(dat){
   # Collapse by combining all from one location
@@ -218,9 +224,10 @@ no_weighting <- function(dat){
 }
 #---------------------------------------------------------------------------------------------------
 
-
-dat_sci_final <- weighting_type1(dat_sci)
-dat_sci_final_no <- no_weighting(dat_sci)
+# Choose which weighting is to be used
+dat_sci_final_3 <- weighting_type3(dat_sci)
+dat_sci_final_2 <- weighting_type2(dat_sci)
+dat_sci_final_1 <- no_weighting(dat_sci)
 
 
 # Get the share of total SCI from each county
