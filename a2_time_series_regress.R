@@ -37,17 +37,19 @@ rm(list=ls())
 # Built in a1_county_data_collect.R
 dat_inflex <- read_csv("../SocialInflationExpectation/_intermediate/inflexp_date_cz.csv")
 
+# choose mean or median computation of SPI and PPI here
+
 # Read in SCI-weighted inflation (Social Proximity to Inflation)
 # Built in a1_county_data_collect.R
 # sci_weighted_inflation_control <- read_csv("../SocialInflationExpectation/_intermediate/sci_weighted_inflation_control.csv") %>%
 #   rename(sci_weighted_inflation_control=sci_weighted_inflation)
 # sci_weighted_inflation <- read_csv("../SocialInflationExpectation/_intermediate/sci_weighted_inflation.csv")
-SPI <- read_csv("../SocialInflationExpectation/_intermediate/SPI.csv")
+SPI <- read_csv("../SocialInflationExpectation/_intermediate/SPI_median.csv")
 
 # Read in distance-weighted inflation (Physical Proximity to Inflation)
 # Built in a1_county_data_collect.R
 # dist_weighted_inflation <- read_csv("../SocialInflationExpectation/_intermediate/dist_weighted_inflation.csv")
-PPI <- read_csv("../SocialInflationExpectation/_intermediate/PPI.csv")
+PPI <- read_csv("../SocialInflationExpectation/_intermediate/PPI_median.csv")
 
 # Join the weighted cases measures
 # weighted_inflation_dat <- dist_weighted_inflation %>% 
@@ -154,7 +156,7 @@ coeftest(po2, vcov. = vcovHC, type = "HC1")
 ##############################
 
 
-pdf(file = "../SocialInflationExpectation/_output/SPI_plot.pdf", width=8, height=6)
+pdf(file = "../SocialInflationExpectation/_output/SPI_plot2.pdf", width=8, height=6)
 
 plot(x = regress_dat$inflexp_median, 
      y = regress_dat$SPI,
@@ -166,9 +168,9 @@ plot(x = regress_dat$inflexp_median,
 
 # add the regression line to plot
 abline(po2, lwd = 1.5)
-text(-28, -6, "Model (4)")
+text(13, -6, "Model (4)")
 abline(po1, lwd = 1.5, col = "steelblue")
-text(13, -6, "Model (3)", col = "steelblue")
+text(-10, -6, "Model (3)", col = "steelblue")
 
 dev.off()
 
@@ -190,10 +192,6 @@ dev.off()
 
 
 
-
-
-
-
 # 3.3. Write regression table 
 #############################
 
@@ -206,7 +204,7 @@ dat <- data.frame(regress_dat) %>%
 
 stargazer(dat)
 
-stargazer(inflex_fe1, inflex_fe2, inflex_po1, inflex_po2, title="Regression Results", align=TRUE)
+stargazer(fe1,fe2,po1,po2, title="Regression Results", align=TRUE)
 
 
 # 3.4 Check correlation 
@@ -287,4 +285,92 @@ tefe <- plm(inflexp_median ~ SPI + PPI + pi_mean,
                         effect = "twoways")
 
 stargazer(fe1,fe2,po1,po2,tefe,title="Regression Results",align=TRUE, label = "tab:regout", model.names = TRUE)
+
+
+
+# 4.3 Use change in expectations as dependent variable
+######################################################
+
+regress_dat2 <- regress_dat %>%
+  arrange(cz2000,date) %>%
+  group_by(cz2000) %>%
+  # compute lead
+  mutate(inflexp_lead = dplyr::lead(inflexp_median)) %>%
+  # compute how much is adjusted for the next period
+  mutate(inflexp_chg = inflexp_lead - inflexp_median) %>%
+  filter(!is.na(inflexp_lead))
+
+
+# estimate the fixed effects regression with plm()
+chg_fe1 <- plm(inflexp_chg ~ SPI, 
+           data = regress_dat2,
+           index = c("cz2000", "date"), 
+           model = "within")
+# using robust standard errors
+coeftest(chg_fe1, vcov. = vcovHC, type = "HC1")
+
+chg_fe2 <- plm(inflexp_chg ~ SPI + PPI + pi_mean, 
+           data = regress_dat2,
+           index = c("cz2000", "date"), 
+           model = "within")
+coeftest(chg_fe2, vcov. = vcovHC, type = "HC1")
+
+# estimate the pooled effects regression with plm()
+chg_po1 <- plm(inflexp_chg ~ SPI, 
+           data = regress_dat2,
+           index = c("cz2000", "date"), 
+           model = "pooling")
+coeftest(chg_po1, vcov. = vcovHC, type = "HC1")
+
+chg_po2 <- plm(inflexp_chg ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
+           data = regress_dat2,
+           index = c("cz2000", "date"), 
+           model = "pooling")
+coeftest(chg_po2, vcov. = vcovHC, type = "HC1")
+
+
+# with time and fixed effects via plm()
+chg_tefe <- plm(inflexp_chg ~ SPI + PPI + pi_mean, 
+            data = regress_dat2,
+            index = c("cz2000", "date"), 
+            model = "within", 
+            effect = "twoways")
+
+stargazer(chg_fe1,chg_fe2,chg_po1,chg_po2,chg_tefe,title="Regression Results",align=TRUE, label = "tab:reglead", model.names = TRUE)
+
+
+
+pdf(file = "../SocialInflationExpectation/_output/SPI_plot2_chg.pdf", width=8, height=6)
+
+plot(x = regress_dat2$inflexp_chg, 
+     y = regress_dat2$SPI,
+     xlab = "Median Inflation Expectations",
+     ylab = "Social Proximity to Inflation",
+     pch = 20, 
+     col = "steelblue")
+
+
+# add the regression line to plot
+abline(chg_po2, lwd = 1.5)
+text(-20, -6, "Model (4)")
+abline(chg_po1, lwd = 1.5, col = "steelblue")
+text(10, -6, "Model (3)", col = "steelblue")
+
+dev.off()
+
+pdf(file = "../SocialInflationExpectation/_output/PPI_plot2_chg.pdf", width=8, height=6)
+
+plot(x = regress_dat2$inflexp_chg, 
+     y = regress_dat2$PPI,
+     xlab = "Median Inflation Expectations",
+     ylab = "Physical Proximity to Inflation",
+     pch = 20, 
+     col = "steelblue")
+
+
+# add the regression line to plot
+abline(a = chg_po2[["coefficients"]][1], b = chg_po2[["coefficients"]][3], lwd = 1.5)
+text(10, -8, "Model (4)")
+
+dev.off()
 
