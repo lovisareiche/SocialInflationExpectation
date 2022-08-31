@@ -307,7 +307,7 @@ dat_geo <- read_csv2(dir.geo) %>%
 ################################
 
 
-curr_dat <- dat_sci_final %>%
+curr_dat_mean <- dat_sci_final %>%
   # Join in the Inflation data for foreign cz
   inner_join(dat_inflex_agg2, by=c("fr_loc"="cz2000")) %>%
   rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
@@ -320,7 +320,22 @@ curr_dat <- dat_sci_final %>%
   summarise(SPI = sum((inflexp_mean_fr-inflexp_mean_user)*share_sci)) %>%
   ungroup
 
-write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/SPI.csv")
+write_csv(curr_dat_mean, "../SocialInflationExpectation/_intermediate/SPI_mean.csv")
+
+curr_dat_median <- dat_sci_final %>%
+  # Join in the Inflation data for foreign cz
+  inner_join(dat_inflex_agg2, by=c("fr_loc"="cz2000")) %>%
+  rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
+  # Join inflation exp for local cz by date
+  inner_join(dat_inflex_agg2, by=c("user_loc"="cz2000","date")) %>%
+  rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+  # Collapse and make the final weighted measure
+  group_by(user_loc, date) %>% 
+  # compute spi using differences
+  summarise(SPI = sum((inflexp_median_fr-inflexp_median_user)*share_sci)) %>%
+  ungroup
+
+write_csv(curr_dat_median, "../SocialInflationExpectation/_intermediate/SPI_median.csv")
 
 
 # 3.2 Physiscal Proximity (by distance)
@@ -355,7 +370,23 @@ for (i in unique(county_county_dist$cz1)) {
 }
 
 
-curr_dat <- dat_dist_final %>%
+curr_dat_median <- dat_dist_final %>%
+  summarise(cz1 = as.double(cz1), cz2 = as.double(cz2), mi_to_cz) %>%
+  # Join in the Inflation data
+  inner_join(dat_inflex_agg2, by=c("cz2"="cz2000")) %>% 
+  rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
+  # Join inflation exp for local cz by date
+  inner_join(dat_inflex_agg2, by=c("cz1"="cz2000","date")) %>%
+  rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+  
+  # Collapse and make the final weighted measure
+  group_by(cz1, date) %>% 
+  summarise(PPI = sum((inflexp_median_fr-inflexp_median_user)/(1+mi_to_cz))) %>%
+  ungroup
+
+write_csv(curr_dat_median, "../SocialInflationExpectation/_intermediate/PPI_median.csv")
+
+curr_dat_mean <- dat_dist_final %>%
   summarise(cz1 = as.double(cz1), cz2 = as.double(cz2), mi_to_cz) %>%
   # Join in the Inflation data
   inner_join(dat_inflex_agg2, by=c("cz2"="cz2000")) %>% 
@@ -369,5 +400,5 @@ curr_dat <- dat_dist_final %>%
   summarise(PPI = sum((inflexp_mean_fr-inflexp_mean_user)/(1+mi_to_cz))) %>%
   ungroup
 
-write_csv(curr_dat, "../SocialInflationExpectation/_intermediate/PPI.csv")
+write_csv(curr_dat_mean, "../SocialInflationExpectation/_intermediate/PPI_mean.csv")
 
