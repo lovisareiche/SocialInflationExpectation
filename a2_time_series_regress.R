@@ -23,6 +23,9 @@ library(pracma)
 library(plm)
 library(lmtest)
 library(tikzDevice)
+library(multiplex)
+library(dplyr)
+library(tidyr)
 
 rm(list=ls())
 ####################################
@@ -106,6 +109,9 @@ regress_dat <- dat_inflex %>%
 
 
 write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regress_dat.csv")
+write.dat(data.frame(SPI = regress_dat$SPI, inflexp = regress_dat$inflexp_median), "../SocialInflationExpectation/_output/SPI.dat")
+write.dat(data.frame(regress_dat$inflexp_median), "../SocialInflationExpectation/_output/inflexp_median.dat")
+
 
 
 ###############################
@@ -147,11 +153,11 @@ coeftest(po2, vcov. = vcovHC, type = "HC1")
 # 3.2. Plot scatters for check 
 ##############################
 
-windowsFonts(A = windowsFont("ComputerModern"))
+
+pdf(file = "../SocialInflationExpectation/_output/SPI_plot.pdf", width=8, height=6)
 
 plot(x = regress_dat$inflexp_median, 
      y = regress_dat$SPI,
-     family="ComputerModern",
      xlab = "Median Inflation Expectations",
      ylab = "Social Proximity to Inflation",
      pch = 20, 
@@ -159,7 +165,31 @@ plot(x = regress_dat$inflexp_median,
 
 
 # add the regression line to plot
-abline(inflex_fe2, lwd = 1.5)
+abline(po2, lwd = 1.5)
+text(-28, -6, "Model (4)")
+abline(po1, lwd = 1.5, col = "steelblue")
+text(13, -6, "Model (3)", col = "steelblue")
+
+dev.off()
+
+pdf(file = "../SocialInflationExpectation/_output/PPI_plot.pdf", width=8, height=6)
+
+plot(x = regress_dat$inflexp_median, 
+     y = regress_dat$PPI,
+     xlab = "Median Inflation Expectations",
+     ylab = "Physical Proximity to Inflation",
+     pch = 20, 
+     col = "steelblue")
+
+
+# add the regression line to plot
+abline(a = po2[["coefficients"]][1], b = po2[["coefficients"]][3], lwd = 1.5)
+text(15, -8, "Model (4)")
+
+dev.off()
+
+
+
 
 
 
