@@ -401,7 +401,7 @@ curr_dat_median <- dat_dist_final %>%
   group_by(cz1, date) %>% 
   mutate(PPI1 = sum((inflexp_median_fr)/(1+mi_to_cz))) %>%
   mutate(PPI2 = sum((inflexp_median_fr-inflexp_median_user)/(1+mi_to_cz))) %>%
-  summarise(PPI3 = sum((pi_mean_fr)/(1+mi_to_cz))) %>%
+  summarise(PPI1, PPI2, PPI3 = sum((pi_mean_fr)/(1+mi_to_cz))) %>%
   ungroup
 
 write_csv(curr_dat_median, "../SocialInflationExpectation/_intermediate/PPI_median.csv")
@@ -423,7 +423,7 @@ curr_dat_mean <- dat_dist_final %>%
   group_by(cz1, date) %>% 
   mutate(PPI1 = sum((inflexp_mean_fr)/(1+mi_to_cz))) %>%
   mutate(PPI2 = sum((inflexp_mean_fr-inflexp_mean_user)/(1+mi_to_cz))) %>%
-  summarise(PPI3 = sum((pi_mean_fr)/(1+mi_to_cz))) %>%
+  summarise(PPI1, PPI2, PPI3 = sum((pi_mean_fr)/(1+mi_to_cz))) %>%
   ungroup
 
 write_csv(curr_dat_mean, "../SocialInflationExpectation/_intermediate/PPI_mean.csv")
