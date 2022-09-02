@@ -328,6 +328,7 @@ curr_dat_mean <- dat_sci_final %>%
   mutate(SPI1 = sum((inflexp_mean_fr)*share_sci)) %>%
   mutate(SPI2 = sum((inflexp_mean_fr-inflexp_mean_user)*share_sci)) %>%
   summarise(SPI1, SPI2, SPI3 = sum((pi_mean_fr)*share_sci)) %>%
+  distinct(.keep_all = TRUE) %>%
   ungroup
 
 write_csv(curr_dat_mean, "../SocialInflationExpectation/_intermediate/SPI_mean.csv")
@@ -348,6 +349,7 @@ curr_dat_median <- dat_sci_final %>%
   mutate(SPI1 = sum((inflexp_median_fr)*share_sci)) %>%
   mutate(SPI2 = sum((inflexp_median_fr-inflexp_median_user)*share_sci)) %>%
   summarise(SPI1, SPI2, SPI3 = sum((pi_mean_fr)*share_sci)) %>%
+  distinct(.keep_all = TRUE) %>%
   ungroup
 
 write_csv(curr_dat_median, "../SocialInflationExpectation/_intermediate/SPI_median.csv")
@@ -402,6 +404,7 @@ curr_dat_median <- dat_dist_final %>%
   mutate(PPI1 = sum((inflexp_median_fr)/(1+mi_to_cz))) %>%
   mutate(PPI2 = sum((inflexp_median_fr-inflexp_median_user)/(1+mi_to_cz))) %>%
   summarise(PPI1, PPI2, PPI3 = sum((pi_mean_fr)/(1+mi_to_cz))) %>%
+  distinct(.keep_all = TRUE) %>%
   ungroup
 
 write_csv(curr_dat_median, "../SocialInflationExpectation/_intermediate/PPI_median.csv")
@@ -424,6 +427,7 @@ curr_dat_mean <- dat_dist_final %>%
   mutate(PPI1 = sum((inflexp_mean_fr)/(1+mi_to_cz))) %>%
   mutate(PPI2 = sum((inflexp_mean_fr-inflexp_mean_user)/(1+mi_to_cz))) %>%
   summarise(PPI1, PPI2, PPI3 = sum((pi_mean_fr)/(1+mi_to_cz))) %>%
+  distinct(.keep_all = TRUE) %>%
   ungroup
 
 write_csv(curr_dat_mean, "../SocialInflationExpectation/_intermediate/PPI_mean.csv")
