@@ -18,6 +18,7 @@
 library(tidyverse)
 library(pracma) # for uniq accumarray
 library(plm) # for panel linear regression
+library(psychTools) # for writing latex
 
 rm(list=ls())
 ####################################
@@ -97,6 +98,12 @@ regress_dat <- dat_inflex %>%
 write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regress_dat.csv")
 
 
+cor2latex(regress_dat[,c(3,6:16)],use = "pairwise", method="pearson", adjust="holm",stars=FALSE,
+          digits=2,rowlabels=TRUE,lower=TRUE,apa=TRUE,short.names=TRUE,
+          font.size ="scriptsize", heading="Correlation",
+          caption="cor2latex",label="tab:cor",silent=FALSE,file=NULL,append=FALSE,cut=0,big=0)
+
+cor(regress_dat[,c(3,6:16)],use = "complete.obs")
 
 ###############################
 ##### 3. Panel regression #####
