@@ -16,16 +16,8 @@
 #     3. Panel regression
 
 library(tidyverse)
-library(lubridate)
-library(sf)
-library(tigris)
-library(pracma)
-library(plm)
-library(lmtest)
-library(tikzDevice)
-library(multiplex)
-library(dplyr)
-library(tidyr)
+library(pracma) # for uniq accumarray
+library(plm) # for panel linear regression
 
 rm(list=ls())
 ####################################
@@ -38,24 +30,16 @@ rm(list=ls())
 dat_inflex <- read_csv("../SocialInflationExpectation/_intermediate/inflexp_date_cz.csv")
 
 # choose mean or median computation of SPI and PPI here
+c <- "mean"
 
 # Read in SCI-weighted inflation (Social Proximity to Inflation)
 # Built in a1_county_data_collect.R
-# sci_weighted_inflation_control <- read_csv("../SocialInflationExpectation/_intermediate/sci_weighted_inflation_control.csv") %>%
-#   rename(sci_weighted_inflation_control=sci_weighted_inflation)
-# sci_weighted_inflation <- read_csv("../SocialInflationExpectation/_intermediate/sci_weighted_inflation.csv")
-SPI <- read_csv("../SocialInflationExpectation/_intermediate/SPI_median.csv")
+SPI <- read_csv(paste("../SocialInflationExpectation/_intermediate/SPI_",c,".csv",sep=""))
 
 # Read in distance-weighted inflation (Physical Proximity to Inflation)
 # Built in a1_county_data_collect.R
 # dist_weighted_inflation <- read_csv("../SocialInflationExpectation/_intermediate/dist_weighted_inflation.csv")
-PPI <- read_csv("../SocialInflationExpectation/_intermediate/PPI_median.csv")
-
-# Join the weighted cases measures
-# weighted_inflation_dat <- dist_weighted_inflation %>% 
-#   left_join(sci_weighted_inflation_control, by=c("cz1"="user_loc", "date"="date")) %>%
-#   left_join(sci_weighted_inflation, by=c("cz1"="user_loc", "date"="date")) %>%
-#   rename(cz2000 = cz1)
+PPI <- read_csv(paste("../SocialInflationExpectation/_intermediate/PPI_",c,".csv",sep=""))
 
 
 # Join the weighted cases measures
@@ -111,8 +95,6 @@ regress_dat <- dat_inflex %>%
 
 
 write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regress_dat.csv")
-write.dat(data.frame(SPI = regress_dat$SPI, inflexp = regress_dat$inflexp_median), "../SocialInflationExpectation/_output/SPI.dat")
-write.dat(data.frame(regress_dat$inflexp_median), "../SocialInflationExpectation/_output/inflexp_median.dat")
 
 
 
@@ -124,72 +106,150 @@ write.dat(data.frame(regress_dat$inflexp_median), "../SocialInflationExpectation
 # 3.1. Estimate fixed effects and pooled ols
 ############################################
 
-# estimate the fixed effects regression with plm()
-fe1 <- plm(inflexp_median ~ SPI, 
-                    data = regress_dat,
-                    index = c("cz2000", "date"), 
-                    model = "within")
-# using robust standard errors
-coeftest(fe1, vcov. = vcovHC, type = "HC1")
+# Computation 1
 
-fe2 <- plm(inflexp_median ~ SPI + PPI + pi_mean, 
+# estimate the fixed effects regression with plm()
+fe1 <- plm(inflexp_median ~ SPI1 + PPI1 + pi_mean, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "within")
-coeftest(fe2, vcov. = vcovHC, type = "HC1")
+#coeftest(fe1, vcov. = vcovHC, type = "HC1")
 
-# estimate the pooled effects regression with plm()
-po1 <- plm(inflexp_median ~ SPI, 
+po1 <- plm(inflexp_median ~ SPI1 + PPI1 + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
                      data = regress_dat,
                      index = c("cz2000", "date"), 
                      model = "pooling")
-coeftest(po1, vcov. = vcovHC, type = "HC1")
+#coeftest(po1, vcov. = vcovHC, type = "HC1")
 
-po2 <- plm(inflexp_median ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
-                     data = regress_dat,
-                     index = c("cz2000", "date"), 
-                     model = "pooling")
-coeftest(po2, vcov. = vcovHC, type = "HC1")
+# Computation 2
+
+# estimate the fixed effects regression with plm()
+fe2 <- plm(inflexp_median ~ SPI2 + PPI2 + pi_mean, 
+           data = regress_dat,
+           index = c("cz2000", "date"), 
+           model = "within")
+#coeftest(fe2, vcov. = vcovHC, type = "HC1")
+
+po2 <- plm(inflexp_median ~ SPI2 + PPI2 + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
+           data = regress_dat,
+           index = c("cz2000", "date"), 
+           model = "pooling")
+#coeftest(po2, vcov. = vcovHC, type = "HC1")
+
+# Computation 3
+
+# estimate the fixed effects regression with plm()
+fe3 <- plm(inflexp_median ~ SPI3 + PPI3 + pi_mean, 
+           data = regress_dat,
+           index = c("cz2000", "date"), 
+           model = "within")
+#coeftest(fe3, vcov. = vcovHC, type = "HC1")
+
+po3 <- plm(inflexp_median ~ SPI3 + PPI3 + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
+           data = regress_dat,
+           index = c("cz2000", "date"), 
+           model = "pooling")
+#coeftest(po3, vcov. = vcovHC, type = "HC1")
 
 
 # 3.2. Plot scatters for check 
 ##############################
 
+# Computation 1
 
-pdf(file = "../SocialInflationExpectation/_output/SPI_plot2.pdf", width=8, height=6)
+pdf(file = paste("../SocialInflationExpectation/_output/SPI1_",c,".pdf",sep=""), width=6, height=6)
 
 plot(x = regress_dat$inflexp_median, 
-     y = regress_dat$SPI,
+     y = regress_dat$SPI1,
      xlab = "Median Inflation Expectations",
-     ylab = "Social Proximity to Inflation",
+     ylab = "Social Proximity to Inflation (computation type 1)",
+     pch = 20, 
+     col = "steelblue")
+
+
+# add the regression line to plot
+abline(po1, lwd = 1.5)
+
+dev.off()
+
+pdf(file = paste("../SocialInflationExpectation/_output/PPI1_",c,".pdf",sep=""), width=6, height=6)
+
+plot(x = regress_dat$inflexp_median, 
+     y = regress_dat$PPI1,
+     xlab = "Median Inflation Expectations",
+     ylab = "Physical Proximity to Inflation (computation type 1)",
+     pch = 20, 
+     col = "steelblue")
+
+
+# add the regression line to plot
+abline(a = po1[["coefficients"]][1], b = po1[["coefficients"]][3], lwd = 1.5)
+
+dev.off()
+
+# Computation 2
+
+pdf(file = paste("../SocialInflationExpectation/_output/SPI2_",c,".pdf",sep=""), width=6, height=6)
+
+plot(x = regress_dat$inflexp_median, 
+     y = regress_dat$SPI2,
+     xlab = "Median Inflation Expectations",
+     ylab = "Social Proximity to Inflation (computation type 2)",
      pch = 20, 
      col = "steelblue")
 
 
 # add the regression line to plot
 abline(po2, lwd = 1.5)
-text(13, -6, "Model (4)")
-abline(po1, lwd = 1.5, col = "steelblue")
-text(-10, -6, "Model (3)", col = "steelblue")
 
 dev.off()
 
-pdf(file = "../SocialInflationExpectation/_output/PPI_plot.pdf", width=8, height=6)
+pdf(file = paste("../SocialInflationExpectation/_output/PPI2_",c,".pdf",sep=""), width=6, height=6)
 
 plot(x = regress_dat$inflexp_median, 
-     y = regress_dat$PPI,
+     y = regress_dat$PPI2,
      xlab = "Median Inflation Expectations",
-     ylab = "Physical Proximity to Inflation",
+     ylab = "Physical Proximity to Inflation (computation type 2)",
      pch = 20, 
      col = "steelblue")
 
 
 # add the regression line to plot
 abline(a = po2[["coefficients"]][1], b = po2[["coefficients"]][3], lwd = 1.5)
-text(15, -8, "Model (4)")
 
 dev.off()
 
+# Computation 3
+
+pdf(file = paste("../SocialInflationExpectation/_output/SPI3_",c,".pdf",sep=""), width=6, height=6)
+
+plot(x = regress_dat$inflexp_median, 
+     y = regress_dat$SPI3,
+     xlab = "Median Inflation Expectations",
+     ylab = "Social Proximity to Inflation (computation type 3)",
+     pch = 20, 
+     col = "steelblue")
+
+
+# add the regression line to plot
+abline(po3, lwd = 1.5)
+
+dev.off()
+
+pdf(file = paste("../SocialInflationExpectation/_output/PPI3_",c,".pdf",sep=""), width=6, height=6)
+
+plot(x = regress_dat$inflexp_median, 
+     y = regress_dat$PPI3,
+     xlab = "Median Inflation Expectations",
+     ylab = "Physical Proximity to Inflation (computation type 3)",
+     pch = 20, 
+     col = "steelblue")
+
+
+# add the regression line to plot
+abline(a = po3[["coefficients"]][1], b = po3[["coefficients"]][3], lwd = 1.5)
+
+dev.off()
 
 
 # 3.3. Write regression table 
@@ -200,17 +260,12 @@ dev.off()
 library(stargazer)
 
 dat <- data.frame(regress_dat) %>%
-  select(inflexp_median,PPI,SPI,pi_mean, poor_share2010,med_hhinc2016,rent_twobed2015,outwardness)
+  select(inflexp_median,PPI1,PPI2,PPI3,SPI1,SPI2,SPI3,pi_mean, poor_share2010,med_hhinc2016,rent_twobed2015,outwardness)
 
 stargazer(dat)
 
-stargazer(fe1,fe2,po1,po2, title="Regression Results", align=TRUE)
+stargazer(fe1,po1,fe2,po2,fe3,po3, title="Regression Results", align=TRUE)
 
-
-# 3.4 Check correlation 
-#######################
-
-cor(regress_dat$PPI,regress_dat$SPI)
 
 
 ############################
@@ -237,32 +292,28 @@ sample2 <- regress_dat %>%
 # Run same regression split for both samples
 
 # estimate the fixed effects regression, no control with plm()
-inflex_fe_s1 <- plm(inflexp_median ~ SPI + PPI + pi_mean, 
+fe_o1 <- plm(inflexp_median ~ SPI2 + PPI2 + pi_mean, 
                        data = sample1,
                        index = c("cz2000", "date"), 
                        model = "within")
-coeftest(inflex_fe_s1)
 
 # estimate the pooled effects regression, no control with plm()
-inflex_po_s1 <- plm(inflexp_median ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
+po_o1 <- plm(inflexp_median ~ SPI2 + PPI2 + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
                        data = sample1,
                        index = c("cz2000", "date"), 
                        model = "pooling")
-coeftest(inflex_po_s1)
 
 # estimate the fixed effects regression, no control with plm()
-inflex_fe_s2 <- plm(inflexp_median ~ SPI + PPI + pi_mean, 
+fe_o2 <- plm(inflexp_median ~ SPI2 + PPI2 + pi_mean, 
                              data = sample2,
                              index = c("cz2000", "date"), 
                              model = "within")
-coeftest(inflex_fe_s1)
 
 # estimate the pooled effects regression, no control with plm()
-inflex_po_s2 <- plm(inflexp_median ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
+po_o2 <- plm(inflexp_median ~ SPI2 + PPI2 + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015, 
                              data = sample2,
                              index = c("cz2000", "date"), 
                              model = "pooling")
-coeftest(inflex_po_s2)
 
 
 # Write regression table
@@ -270,7 +321,7 @@ coeftest(inflex_po_s2)
 #install.packages("stargazer")
 #library(stargazer)
 
-stargazer(inflex_fe_s1, inflex_po_s1, inflex_fe_s2, inflex_po_s2, title="Regression Results Split by Outwardness", align=TRUE, label = "tab:regout")
+stargazer(fe_o1, po_o1, fe_o2, po_o2, title="Regression Results Split by Outwardness", align=TRUE, label = "tab:regout")
 
 
 
@@ -278,13 +329,25 @@ stargazer(inflex_fe_s1, inflex_po_s1, inflex_fe_s2, inflex_po_s2, title="Regress
 ########################
 
 # via plm()
-tefe <- plm(inflexp_median ~ SPI + PPI + pi_mean, 
+tefe1 <- plm(inflexp_median ~ SPI1 + PPI1 + pi_mean, 
                         data = regress_dat,
                         index = c("cz2000", "date"), 
                         model = "within", 
                         effect = "twoways")
 
-stargazer(fe1,fe2,po1,po2,tefe,title="Regression Results",align=TRUE, label = "tab:regout", model.names = TRUE)
+tefe2 <- plm(inflexp_median ~ SPI2 + PPI2 + pi_mean, 
+             data = regress_dat,
+             index = c("cz2000", "date"), 
+             model = "within", 
+             effect = "twoways")
+
+tefe3 <- plm(inflexp_median ~ SPI3 + PPI3 + pi_mean, 
+             data = regress_dat,
+             index = c("cz2000", "date"), 
+             model = "within", 
+             effect = "twoways")
+
+stargazer(tefe1,tefe2,tefe3,title="Regression Results",align=TRUE, label = "tab:regtefe", model.names = TRUE)
 
 
 
@@ -301,76 +364,136 @@ regress_dat2 <- regress_dat %>%
   filter(!is.na(inflexp_lead))
 
 
-# estimate the fixed effects regression with plm()
-chg_fe1 <- plm(inflexp_chg ~ SPI, 
+chg_fe1 <- plm(inflexp_chg ~ SPI1 + PPI1 + pi_mean, 
            data = regress_dat2,
            index = c("cz2000", "date"), 
            model = "within")
-# using robust standard errors
-coeftest(chg_fe1, vcov. = vcovHC, type = "HC1")
 
-chg_fe2 <- plm(inflexp_chg ~ SPI + PPI + pi_mean, 
-           data = regress_dat2,
-           index = c("cz2000", "date"), 
-           model = "within")
-coeftest(chg_fe2, vcov. = vcovHC, type = "HC1")
-
-# estimate the pooled effects regression with plm()
-chg_po1 <- plm(inflexp_chg ~ SPI, 
+chg_po1 <- plm(inflexp_chg ~ SPI1 + PPI1 + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
            data = regress_dat2,
            index = c("cz2000", "date"), 
            model = "pooling")
-coeftest(chg_po1, vcov. = vcovHC, type = "HC1")
 
-chg_po2 <- plm(inflexp_chg ~ SPI + PPI + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
-           data = regress_dat2,
-           index = c("cz2000", "date"), 
-           model = "pooling")
-coeftest(chg_po2, vcov. = vcovHC, type = "HC1")
+chg_fe2 <- plm(inflexp_chg ~ SPI2 + PPI2 + pi_mean, 
+               data = regress_dat2,
+               index = c("cz2000", "date"), 
+               model = "within")
+
+chg_po2 <- plm(inflexp_chg ~ SPI2 + PPI2 + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
+               data = regress_dat2,
+               index = c("cz2000", "date"), 
+               model = "pooling")
+
+chg_fe3 <- plm(inflexp_chg ~ SPI3 + PPI3 + pi_mean, 
+               data = regress_dat2,
+               index = c("cz2000", "date"), 
+               model = "within")
+
+chg_po3 <- plm(inflexp_chg ~ SPI3 + PPI3 + pi_mean + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
+               data = regress_dat2,
+               index = c("cz2000", "date"), 
+               model = "pooling")
 
 
-# with time and fixed effects via plm()
-chg_tefe <- plm(inflexp_chg ~ SPI + PPI + pi_mean, 
-            data = regress_dat2,
-            index = c("cz2000", "date"), 
-            model = "within", 
-            effect = "twoways")
-
-stargazer(chg_fe1,chg_fe2,chg_po1,chg_po2,chg_tefe,title="Regression Results",align=TRUE, label = "tab:reglead", model.names = TRUE)
+stargazer(chg_fe1,chg_po1,chg_fe2,chg_po2,chg_fe3,chg_po3,title="Regression Results",align=TRUE, label = "tab:reglead", model.names = TRUE)
 
 
 
-pdf(file = "../SocialInflationExpectation/_output/SPI_plot2_chg.pdf", width=8, height=6)
+
+# Computation 1
+
+pdf(file = paste("../SocialInflationExpectation/_output/SPI1_",c,"_chg.pdf",sep=""), width=6, height=6)
 
 plot(x = regress_dat2$inflexp_chg, 
-     y = regress_dat2$SPI,
-     xlab = "Median Inflation Expectations",
-     ylab = "Social Proximity to Inflation",
+     y = regress_dat2$SPI1,
+     xlab = "Chnage in Median Inflation Expectations",
+     ylab = "Social Proximity to Inflation (computation type 1)",
      pch = 20, 
      col = "steelblue")
 
 
 # add the regression line to plot
-abline(chg_po2, lwd = 1.5)
-text(-20, -6, "Model (4)")
-abline(chg_po1, lwd = 1.5, col = "steelblue")
-text(10, -6, "Model (3)", col = "steelblue")
+abline(po1, lwd = 1.5)
 
 dev.off()
 
-pdf(file = "../SocialInflationExpectation/_output/PPI_plot2_chg.pdf", width=8, height=6)
+pdf(file = paste("../SocialInflationExpectation/_output/PPI1_",c,"_chg.pdf",sep=""), width=6, height=6)
 
 plot(x = regress_dat2$inflexp_chg, 
-     y = regress_dat2$PPI,
+     y = regress_dat2$PPI1,
      xlab = "Median Inflation Expectations",
-     ylab = "Physical Proximity to Inflation",
+     ylab = "Physical Proximity to Inflation (computation type 1)",
      pch = 20, 
      col = "steelblue")
 
 
 # add the regression line to plot
-abline(a = chg_po2[["coefficients"]][1], b = chg_po2[["coefficients"]][3], lwd = 1.5)
-text(10, -8, "Model (4)")
+abline(a = po1[["coefficients"]][1], b = po1[["coefficients"]][3], lwd = 1.5)
 
 dev.off()
+
+# Computation 2
+
+pdf(file = paste("../SocialInflationExpectation/_output/SPI2_",c,"_chg.pdf",sep=""), width=6, height=6)
+
+plot(x = regress_dat2$inflexp_chg, 
+     y = regress_dat2$SPI2,
+     xlab = "Chnage in Median Inflation Expectations",
+     ylab = "Social Proximity to Inflation (computation type 2)",
+     pch = 20, 
+     col = "steelblue")
+
+
+# add the regression line to plot
+abline(po2, lwd = 1.5)
+
+dev.off()
+
+pdf(file = paste("../SocialInflationExpectation/_output/PPI2_",c,"_chg.pdf",sep=""), width=6, height=6)
+
+plot(x = regress_dat2$inflexp_chg, 
+     y = regress_dat2$PPI2,
+     xlab = "Median Inflation Expectations",
+     ylab = "Physical Proximity to Inflation (computation type 2)",
+     pch = 20, 
+     col = "steelblue")
+
+
+# add the regression line to plot
+abline(a = po2[["coefficients"]][1], b = po1[["coefficients"]][3], lwd = 1.5)
+
+dev.off()
+
+# Computation 3
+
+pdf(file = paste("../SocialInflationExpectation/_output/SPI3_",c,"_chg.pdf",sep=""), width=6, height=6)
+
+plot(x = regress_dat2$inflexp_chg, 
+     y = regress_dat2$SPI3,
+     xlab = "Chnage in Median Inflation Expectations",
+     ylab = "Social Proximity to Inflation (computation type 3)",
+     pch = 20, 
+     col = "steelblue")
+
+
+# add the regression line to plot
+abline(po3, lwd = 1.5)
+
+dev.off()
+
+pdf(file = paste("../SocialInflationExpectation/_output/PPI3_",c,"_chg.pdf",sep=""), width=6, height=6)
+
+plot(x = regress_dat2$inflexp_chg, 
+     y = regress_dat2$PPI3,
+     xlab = "Median Inflation Expectations",
+     ylab = "Physical Proximity to Inflation (computation type 3)",
+     pch = 20, 
+     col = "steelblue")
+
+
+# add the regression line to plot
+abline(a = po3[["coefficients"]][1], b = po1[["coefficients"]][3], lwd = 1.5)
+
+dev.off()
+
 
