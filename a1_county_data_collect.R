@@ -29,6 +29,16 @@ library(tidyverse)
 library(lubridate)
 library(pracma)
 
+########################
+##### Make Choices #####
+########################
+
+# Do you want to look at mean or median computation?
+c <- "median"
+
+# Do you want to look at US counties or EU countries?
+l <- "US"
+
 
 ####################################
 ##### 1. Specify data location #####
@@ -39,29 +49,29 @@ library(pracma)
 
 # SCI 
 # https://data.humdata.org/dataset/social-connectedness-index'
-dir.county_county_sci <- "../SocialInflationExpectation/_input/county_county.tsv"
-
+dir.sci <- paste("../SocialInflationExpectation/_input/",l,"/sci.tsv",sep="")
+    
 # Distance
 # https://data.nber.org/data/county-distance-database.html
-dir.county_county_dist <- "../SocialInflationExpectation/_input/sf12010countydistancemiles.csv"
-
+dir.dist <- paste("../SocialInflationExpectation/_input/",l,"/dist.xlsx",sep="")
+      
 # Covariates
 # https://opportunityinsights.org/data/?geographic_level=102&topic=0&paper_id=0#resource-listing
-dir.covariates <- "../SocialInflationExpectation/_input/cty_covariates.csv"
+dir.covariates <- paste("../SocialInflationExpectation/_input/",l,"/covariates.xlsx",sep="")
 # Note: use 2010 FIPS and 1990 commuting zones
-
+      
 # Inflation
 #  Survey of Consumer Expectations, © 2013-21 Federal Reserve Bank of New York (FRBNY)
-dir.inflexp <- "../SocialInflationExpectation/_input/FRBNY-SCE-Public-Microdata-Complete.csv"
+dir.inflexp <- paste("../SocialInflationExpectation/_input/",l,"/inflexp.xlsx",sep="")
 # Note: use 2000 commuting zones
-
+      
 # Geographic IDs
 # https://www.ers.usda.gov/data-products/commuting-zones-and-labor-market-areas/
-dir.geo <- "../SocialInflationExpectation/_input/cz00_eqv_v1.csv"
-
+dir.geo <- paste("../SocialInflationExpectation/_input/",l,"/cz00_eqv_v1.csv",sep="")
+    
 # Population
 # https://www.census.gov/data/datasets/time-series/demo/popest/2020s-counties-total.html#par_textimage_70769902
-dir.pop <- "../SocialInflationExpectation/_input/co-est2021-alldata.csv"
+dir.pop <- paste("../SocialInflationExpectation/_input/",l,"/pop.xlsx",sep="")
 
 
 
@@ -93,7 +103,7 @@ dat_covariates <- read_csv(dir.covariates) %>%
 write_csv(dat_covariates,"../SocialInflationExpectation/_intermediate/covariates.csv")
 
 # Read in SCI, goal: convert fips to cz2000 (more coarse)
-dat_sci <- read_tsv(dir.county_county_sci) %>%
+dat_sci <- read_tsv(dir.sci) %>%
   # inner_join with geo to get cz2000 for each foreign fips (removes na)
   inner_join(dat_geo,by = c("fr_loc"="fips")) %>%
   rename(fr_loc_cz = cz2000) %>%
@@ -292,7 +302,7 @@ rm(list = ls())
 dir.geo <- "../SocialInflationExpectation/_input/cz00_eqv_v1.csv"
 # Distance
 # https://data.nber.org/data/county-distance-database.html
-dir.county_county_dist <- "../SocialInflationExpectation/_input/sf12010countydistancemiles.csv"
+dir.dist <- "../SocialInflationExpectation/_input/sf12010countydistancemiles.csv"
 # Inflation
 # Hazell et al 2020
 dir.cpi <- "../SocialInflationExpectation/_intermediate/cpi_cz2000-timeseries_nakamura.csv"
@@ -359,7 +369,7 @@ write_csv(curr_dat_median, "../SocialInflationExpectation/_intermediate/SPI_medi
 ################################
 
 # Read in data for county distances
-county_county_dist <- read_csv(dir.county_county_dist) %>%
+dat_dist <- read_csv(dir.dist) %>%
   inner_join(dat_geo,by = c("county1"="fips")) %>%
   rename(cz1 = cz2000) %>%
   subset(select = c(cz1,mi_to_county,county2)) %>%
@@ -370,11 +380,11 @@ county_county_dist <- read_csv(dir.county_county_dist) %>%
 
 # Since distances are given for counties we need to convert to commuting zones
 # as distance we choose the average distance between cz1 and cz2
-for (i in unique(county_county_dist$cz1)) {
+for (i in unique(dat_dist$cz1)) {
   
   print(i)
   
-  us_subset <- filter(county_county_dist, cz1 == i)
+  us_subset <- filter(dat_dist, cz1 == i)
   U = uniq(us_subset$cz2)
   a = accumarray(U$n,us_subset$mi_to_county, func = mean)
   
