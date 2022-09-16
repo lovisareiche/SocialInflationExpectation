@@ -32,7 +32,7 @@ rm(list=ls())
 dat_inflex <- read_csv("../SocialInflationExpectation/_intermediate/inflexp_date_cz.csv")
 
 # choose mean or median computation of SPI and PPI here
-c <- "mean"
+c <- "median"
 
 # Read in SCI-weighted inflation (Social Proximity to Inflation)
 # Built in a1_county_data_collect.R
@@ -92,12 +92,18 @@ regress_dat <- dat_inflex %>%
   left_join(dat_outward) %>% 
   # Join with cpi (!!! Only availabe in 2018, on regional not cz basis !!!)
   inner_join(dat_cpi) %>%
-  #mutate(cz2000 = factor(cz2000), date = factor(date)) %>%
-  # compute lead
+  # compute l
   mutate(inflexp_lead = dplyr::lead(inflexp_median)) %>%
+  mutate(inflexp_lag = dplyr::lag(inflexp_median)) %>%
+  mutate(inflexp_lead = dplyr::lead(inflexp_median)) %>%
+  mutate(SPI_lag = dplyr::lag(SPI2)) %>%
+  mutate(PPI_lag = dplyr::lag(PPI2)) %>%
+  mutate(state_inflation_lag = dplyr::lag(state_inflation)) %>%
   # compute how much is adjusted for the next period
-  mutate(inflexp_chg = inflexp_lead - inflexp_median) %>%
-  filter(!is.na(inflexp_lead))
+  mutate(inflexp_chg_lead = inflexp_lead - inflexp_median) %>%
+  mutate(inflexp_chg_lag = inflexp_median - inflexp_lag) %>%
+  #filter(!is.na(inflexp_lead)) %>%
+  filter(!is.na(inflexp_lag))
 
 
 write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regress_dat.csv")
@@ -122,7 +128,7 @@ cor2latex(regress_dat[,c(3,6:16)],use = "pairwise", method="pearson", adjust="ho
 ####################
 
 dat <- data.frame(regress_dat) %>%
-  select(inflexp_chg,PPI2,SPI2,state_inflation, inflexp_median,poor_share2010,med_hhinc2016,rent_twobed2015,outwardness)
+  select(inflexp_chg_lead,inflexp_chg_lag,inflexp_median,SPI2,PPI2,state_inflation, poor_share2010,med_hhinc2016,rent_twobed2015,outwardness)
 
 stargazer(dat)
 
@@ -131,48 +137,56 @@ stargazer(dat)
 #######################################
 
 # all
-fe1 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + inflexp_median, 
-               data = regress_dat,
-               index = c("cz2000", "date"), 
-               model = "within")
+#fe1 <- plm(inflexp_chg_lead ~ SPI2 + PPI2 + state_inflation + inflexp_median, data = regress_dat,index = c("cz2000", "date"), model = "within")
+fe1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag + inflexp_lag, 
+           data = regress_dat,
+           index = c("cz2000", "date"), 
+           model = "within")
 # with time fixed effects
-tefe1 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + inflexp_median, 
+# tefe1 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + inflexp_median, data = regress_dat,index = c("cz2000", "date"), model = "within",effect = "twoways")
+tefe1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag + inflexp_lag, 
            data = regress_dat,
            index = c("cz2000", "date"), 
            model = "within",
            effect = "twoways")
 
 # no inflexp median
-fe2 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation, 
+#fe2 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation, data = regress_dat,index = c("cz2000", "date"), model = "within")
+fe2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag, 
            data = regress_dat,
            index = c("cz2000", "date"), 
            model = "within")
 # with time fixed effects
-tefe2 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation, 
+#tefe2 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation, data = regress_dat,index = c("cz2000", "date"), model = "within",effect = "twoways")
+tefe2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag, 
              data = regress_dat,
              index = c("cz2000", "date"), 
              model = "within",
              effect = "twoways")
 
 # only SPI
-fe3 <- plm(inflexp_chg ~ SPI2, 
+#fe3 <- plm(inflexp_chg ~ SPI2, data = regress_dat,index = c("cz2000", "date"), model = "within")
+fe3 <- plm(inflexp_chg_lag ~ SPI_lag, 
            data = regress_dat,
            index = c("cz2000", "date"), 
            model = "within")
 # with time fixed effects
-tefe3 <- plm(inflexp_chg ~ SPI2, 
+#tefe3 <- plm(inflexp_chg ~ SPI2, data = regress_dat,index = c("cz2000", "date"), model = "within",effect = "twoways")
+tefe3 <- plm(inflexp_chg_lag ~ SPI_lag, 
              data = regress_dat,
              index = c("cz2000", "date"), 
              model = "within",
              effect = "twoways")
 
 # only PPI
-fe4 <- plm(inflexp_chg ~ PPI2, 
+#fe4 <- plm(inflexp_chg ~ PPI2,  data = regress_dat, index = c("cz2000", "date"),  model = "within")
+fe4 <- plm(inflexp_chg_lag ~ PPI_lag, 
            data = regress_dat,
            index = c("cz2000", "date"), 
            model = "within")
 # with time fixed effects
-tefe4 <- plm(inflexp_chg ~ PPI2, 
+#tefe4 <- plm(inflexp_chg ~ PPI2,  data = regress_dat, index = c("cz2000", "date"),  model = "within", effect = "twoways")
+tefe4 <- plm(inflexp_chg_lag ~ PPI_lag, 
              data = regress_dat,
              index = c("cz2000", "date"), 
              model = "within",
@@ -203,51 +217,59 @@ for(i in 1:length(dates)){
 regress_dat <- bind_cols(regress_dat,T)
 
 # all
-po1 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + inflexp_median + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
-               data = regress_dat,
-               index = c("cz2000", "date"), 
-               model = "pooling")
-# with time fixed effects
-tepo1 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + inflexp_median + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
-               data = regress_dat,
-               index = c("cz2000", "date"), 
-               model = "pooling")
-
-# remove inflexp
-po2 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
+#po1 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + inflexp_median + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness,  data = regress_dat, index = c("cz2000", "date"),   model = "pooling")
+po1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag + inflexp_lag + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
            data = regress_dat,
            index = c("cz2000", "date"), 
            model = "pooling")
 # with time fixed effects
-tepo2 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
+#tepo1 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + inflexp_median + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010,   data = regress_dat,  index = c("cz2000", "date"),  model = "pooling")
+tepo1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag + inflexp_lag + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
+             data = regress_dat,
+             index = c("cz2000", "date"), 
+             model = "pooling")
+
+# remove inflexp
+#po2 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness,  data = regress_dat, index = c("cz2000", "date"),  model = "pooling")
+po2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
+           data = regress_dat,
+           index = c("cz2000", "date"), 
+           model = "pooling")
+# with time fixed effects
+#tepo2 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010,   data = regress_dat, index = c("cz2000", "date"),  model = "pooling")
+tepo2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
              data = regress_dat,
              index = c("cz2000", "date"), 
              model = "pooling")
 
 # SPI only
-po3 <- plm(inflexp_chg ~ SPI2, 
+#po3 <- plm(inflexp_chg ~ SPI2,  data = regress_dat, index = c("cz2000", "date"),  model = "pooling")
+po3 <- plm(inflexp_chg_lag ~ SPI_lag, 
            data = regress_dat,
            index = c("cz2000", "date"), 
            model = "pooling")
 # with time fixed effects
-tepo3 <- plm(inflexp_chg ~ SPI2 + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
+#tepo3 <- plm(inflexp_chg ~ SPI2 + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010,  data = regress_dat, index = c("cz2000", "date"),  model = "pooling")
+tepo3 <- plm(inflexp_chg_lag ~ SPI_lag + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
              data = regress_dat,
              index = c("cz2000", "date"), 
              model = "pooling")
 
 # PPI only
-po4 <- plm(inflexp_chg ~ PPI2, 
+#po4 <- plm(inflexp_chg ~ PPI2,   data = regress_dat,  index = c("cz2000", "date"),   model = "pooling")
+po4 <- plm(inflexp_chg_lag ~ PPI_lag, 
            data = regress_dat,
            index = c("cz2000", "date"), 
            model = "pooling")
 # with time fixed effects
-tepo4 <- plm(inflexp_chg ~ PPI2 + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
+#tepo4 <- plm(inflexp_chg ~ PPI2 + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010,  data = regress_dat, index = c("cz2000", "date"),  model = "pooling")
+tepo4 <- plm(inflexp_chg_lag ~ PPI_lag + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
              data = regress_dat,
              index = c("cz2000", "date"), 
              model = "pooling")
 
 
-stargazer(po1,tepo1,po2,tepo2,po3,tepo3,po4,tepo4,title="Regression Results",align=TRUE, label = "tab:reglead", model.names = TRUE)
+stargazer(po1,tepo1,po2,tepo2,po3,tepo3,po4,tepo4,title="Pooled OLS Regression Results",align=TRUE, label = "tab:regpo", model.names = TRUE)
 
 
 # Scatter Plots
@@ -256,9 +278,9 @@ stargazer(po1,tepo1,po2,tepo2,po3,tepo3,po4,tepo4,title="Regression Results",ali
 
 pdf(file = paste("../SocialInflationExpectation/_output/SPI2_",c,"_chg.pdf",sep=""), width=6, height=6)
 
-plot(x = regress_dat$inflexp_chg, 
-     y = regress_dat$SPI2,
-     xlab = "Chnage in Median Inflation Expectations",
+plot(x = regress_dat$inflexp_chg_lag, 
+     y = regress_dat$SPI_lag,
+     xlab = "Change in Median Inflation Expectations",
      ylab = "Social Proximity to Inflation (computation type 2)",
      pch = 20, 
      col = "steelblue")
@@ -271,8 +293,8 @@ dev.off()
 
 pdf(file = paste("../SocialInflationExpectation/_output/PPI2_",c,"_chg.pdf",sep=""), width=6, height=6)
 
-plot(x = regress_dat$inflexp_chg, 
-     y = regress_dat$PPI2,
+plot(x = regress_dat$inflexp_chg_lag, 
+     y = regress_dat$PPI_lag,
      xlab = "Median Inflation Expectations",
      ylab = "Physical Proximity to Inflation (computation type 2)",
      pch = 20, 
