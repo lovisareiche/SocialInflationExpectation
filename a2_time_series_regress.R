@@ -109,7 +109,7 @@ regress_dat <- dat_inflex %>%
 write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regress_dat.csv")
 
 
-cor2latex(regress_dat[,c(3,6:16)],use = "pairwise", method="pearson", adjust="holm",stars=FALSE,
+cor2latex(regress_dat[,c(3,7,10,12:16,23)],use = "pairwise", method="pearson", adjust="holm",stars=FALSE,
           digits=2,rowlabels=TRUE,lower=TRUE,apa=TRUE,short.names=TRUE,
           font.size ="scriptsize", heading="Correlation",
           caption="cor2latex",label="tab:cor",silent=FALSE,file=NULL,append=FALSE,cut=0,big=0)
@@ -318,7 +318,7 @@ dev.off()
 
 # Split sample below and above outwardness mean
 
-mo <- mean(dat_outward$outwardness)
+mo <- mean(regress_dat$outwardness)
 # I noticed that the mean here is lower than the mean in the stargazer summary statistic. Could be because there it shows up multiple times per observation due to the time component...
 
 # sample with outwardness below mean
@@ -334,26 +334,26 @@ sample2 <- regress_dat %>%
 # Sample 1: Low outwardness
 
 # fixed effects
-fe2_o1 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation, 
+fe2o1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag, 
            data = sample1,
            index = c("cz2000", "date"), 
            model = "within")
 
 # with time fixed effects
-tefe2_o1 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation, 
+tefe2o1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag, 
              data = sample1,
              index = c("cz2000", "date"), 
              model = "within",
              effect = "twoways")
 
 # pooled ols
-po2_o1 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
+po2o1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag+ state_inflation_lag + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
            data = sample1,
            index = c("cz2000", "date"), 
            model = "pooling")
 
 # with time fixed effects
-tepo2_o1 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
+tepo2o1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
              data = sample1,
              index = c("cz2000", "date"), 
              model = "pooling")
@@ -361,32 +361,31 @@ tepo2_o1 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + poor_share2010 + m
 # Sample 2: High outwardness
 
 # fixed effects
-fe2_o2 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation, 
+fe2o2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag, 
               data = sample2,
               index = c("cz2000", "date"), 
               model = "within")
 
 # with time fixed effects
-tefe2_o2 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation, 
+tefe2o2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag, 
                 data = sample2,
                 index = c("cz2000", "date"), 
                 model = "within",
                 effect = "twoways")
 
 # pooled ols
-po2_o2 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
+po2o2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness, 
               data = sample2,
               index = c("cz2000", "date"), 
               model = "pooling")
 
 # with time fixed effects
-tepo2_o2 <- plm(inflexp_chg ~ SPI2 + PPI2 + state_inflation + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
+tepo2o2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + state_inflation_lag + poor_share2010 + med_hhinc2016 + rent_twobed2015 + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
                 data = sample2,
                 index = c("cz2000", "date"), 
                 model = "pooling")
 
 
-stargazer(fe2_o1,tefe2_o1,po2_o1,tepo2_o1,fe2_o2,tefe2_o2,po2_o2,tepo2_o2,title="Regression Results Split by Outwardness",align=TRUE, label = "tab:regout", model.names = TRUE)
-
+stargazer(fe2o1,tefe2o1,po2o1,tepo2o1,fe2o2,tefe2o2,po2o2,tepo2o2,title="Regression Results Split by Outwardness",align=TRUE, label = "tab:regout", model.names = TRUE)
 
 
