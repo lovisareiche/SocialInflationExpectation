@@ -32,10 +32,6 @@ library(tidyverse)
 ########################
 
 
-
-# Do you want to look at mean or median computation?
-c <- "median"
-
 # Do you want to look at US counties or EU countries?
 l <- "US"
 
@@ -64,7 +60,7 @@ dir.covariates <- paste("../SocialInflationExpectation/_intermediate/covariates_
       
 # Inflation expectations
 # created in pre file
-dir.inflexp <- paste("../SocialInflationExpectation/_intermediate/inflexp_",l,".csv",sep="")
+dir.inflexp <- paste("../SocialInflationExpectation/_intermediate/inflexp_",l,"_",c,".csv",sep="")
 
 # Inflation
 # created in pre file

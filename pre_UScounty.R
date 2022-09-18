@@ -28,12 +28,13 @@ library(tidyverse) # general commands
 library(readxl) # to read excel files
 library(pracma) # for matlab functions (uniq,acumarray)
 
+
+
 ########################################
 ##### This code is for US counties #####
 ########################################
 
-# Do you want to look at mean or median computation?
-c <- "median"
+
 
 # Do you want to look at US counties or EU countries?
 l <- "US"
@@ -310,7 +311,7 @@ dat_inflex_median <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select 
   rename(loc = cz2000) # This is for unifying all codes into one
 
 
-write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/inflexp_",l,".csv",sep=""))
+write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/inflexp_",l,"_",c,".csv",sep=""))
 
 
 
