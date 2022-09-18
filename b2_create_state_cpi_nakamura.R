@@ -21,15 +21,15 @@ library(readxl)
 
 # Geographic IDs
 # https://www.ers.usda.gov/data-products/commuting-zones-and-labor-market-areas/
-dir.geo <- "../SocialInflationExpectation/_input/cz00_eqv_v1.csv"
+dir.geo <- "../SocialInflationExpectation/_input/US/geo_match.csv"
 
 # State IDs
 # https://www.ers.usda.gov/data-products/commuting-zones-and-labor-market-areas/
-dir.stateid <- "../SocialInflationExpectation/_input/fips_state.xlsx"
+dir.stateid <- "../SocialInflationExpectation/_input/US/fips_state.xlsx"
 
 # Regional CPI data
 # https://eml.berkeley.edu/~enakamura/papers/statecpi_beta.csv
-dir.cpi <- "../SocialInflationExpectation/_input/statecpi_beta.csv"
+dir.cpi <- "../SocialInflationExpectation/_input/US/statecpi_beta.csv"
 
 #########################################
 ##### 1. State inflation timeseries #####
