@@ -311,7 +311,7 @@ dat_inflex_median <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select 
   rename(loc = cz2000) # This is for unifying all codes into one
 
 
-write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/inflexp_",l,"_",c,".csv",sep=""))
+write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/inflexp_",l,"_",s,".csv",sep=""))
 
 
 
@@ -366,7 +366,7 @@ write_csv(dat_dist_final,paste("../SocialInflationExpectation/_intermediate/dist
 # Read in Covariates, goal: assign 2000 cz to all areas in covariates
 dat_covariates <- read_xlsx(dir.covariates) %>%
   rename(cz1990 = cz) %>% # rename for clarity
-  mutate(cz1990 = str_pad(as.character(cz1990), 5, "left", "0")) %>% # shape into same format
+  mutate(cz1990 = as.character(cz1990)) %>%
   # left_join with geo data to use cz2000 instead of cz1990
   left_join(dat_geo,by = "cz1990") %>%
   rename(loc = cz2000)
