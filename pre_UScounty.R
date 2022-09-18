@@ -76,6 +76,10 @@ dir.pop <- paste("../SocialInflationExpectation/_input/",l,"/pop_",l,".xlsx",sep
 dir.dist <- paste("../SocialInflationExpectation/_input/",l,"/dist.xlsx",sep="")
 
 
+# Inflation
+# Hazell et al 2020, created in b2_create_state_cpi_nakamura
+dir.cpi <- "../SocialInflationExpectation/_intermediate/cpi_cz2000-timeseries_nakamura.csv"
+
 
 ############################
 ##### 2. Prep SCI data #####
@@ -302,7 +306,8 @@ dat_inflex_median <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select 
   inner_join(dat_inflex_mean) %>%
   filter(!is.na(inflexp_median)) %>%
   filter(obs>=3) %>%
-  mutate(cz2000 = as.character(cz2000))
+  mutate(cz2000 = as.character(cz2000)) %>%
+  rename(loc = cz2000) # This is for unifying all codes into one
 
 
 write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/inflexp_",l,".csv",sep=""))
@@ -319,30 +324,30 @@ write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/i
 dat_dist <- read_xlsx(dir.dist) %>%
   mutate(county1 = as.character(county1), county2 = as.character(county2)) %>% # mutate to characters for joining
   inner_join(dat_geo,by = c("county1"="fips")) %>%
-  rename(cz1 = cz2000) %>%
-  mutate(cz1 = as.numeric(cz1)) %>% # mutate back for pracma functions
-  subset(select = c(cz1,mi_to_county,county2)) %>%
+  rename(user_loc = cz2000) %>%
+  mutate(user_loc = as.numeric(user_loc)) %>% # mutate back for pracma functions
+  subset(select = c(user_loc,mi_to_county,county2)) %>%
   inner_join(dat_geo,by = c("county2"="fips")) %>%
-  rename(cz2 = cz2000) %>%
-  mutate(cz2 = as.numeric(cz2)) %>% # mutate back for pracma functions
-  subset(select = c(cz1,mi_to_county,cz2))
+  rename(fr_loc = cz2000) %>%
+  mutate(fr_loc = as.numeric(fr_loc)) %>% # mutate back for pracma functions
+  subset(select = c(user_loc,mi_to_county,fr_loc))
 
 
 # Since distances are given for counties we need to convert to commuting zones
 # as distance we choose the average distance between cz1 and cz2
 
-for (i in unique(dat_dist$cz1)) {
+for (i in unique(dat_dist$user_loc)) {
   
   print(i)
   
-  subset <- filter(dat_dist, cz1 == i)
-  U = uniq(subset$cz2)
+  subset <- filter(dat_dist, user_loc == i)
+  U = uniq(subset$fr_loc)
   a = accumarray(U$n,subset$mi_to_county, func = mean)
   
-  if (i==dat_dist$cz1[1]){
-    dat_dist_final <- tibble(cz1 = rep(i,times=length(a)), cz2 = as.character(U$b), mi_to_cz = a)
+  if (i==dat_dist$user_loc[1]){
+    dat_dist_final <- tibble(user_loc = rep(i,times=length(a)), fr_loc = as.character(U$b), dist = a)
   } else {
-    dat_dist_final <- rbind(dat_dist_final,tibble(cz1 = rep(i,times=length(a)), cz2 = as.character(U$b), mi_to_cz = a))
+    dat_dist_final <- rbind(dat_dist_final,tibble(user_loc = rep(i,times=length(a)), fr_loc = as.character(U$b), dist = a))
   }
   
 }
@@ -362,6 +367,19 @@ dat_covariates <- read_xlsx(dir.covariates) %>%
   rename(cz1990 = cz) %>% # rename for clarity
   mutate(cz1990 = str_pad(as.character(cz1990), 5, "left", "0")) %>% # shape into same format
   # left_join with geo data to use cz2000 instead of cz1990
-  left_join(dat_geo,by = "cz1990")
+  left_join(dat_geo,by = "cz1990") %>%
+  rename(loc = cz2000)
 
 write_csv(dat_covariates,paste("../SocialInflationExpectation/_intermediate/covariates_",l,".csv",sep=""))
+
+
+# Read in inflation data
+
+dat_cpi <- read_csv(dir.cpi) %>%
+  select(cz2000,date,pi_mean) %>%
+  rename(cpi_inflation = pi_mean, loc = cz2000)
+
+write_csv(dat_cpi,paste("../SocialInflationExpectation/_intermediate/cpi_",l,".csv",sep=""))
+
+
+
