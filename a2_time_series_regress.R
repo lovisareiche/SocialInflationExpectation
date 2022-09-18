@@ -1,15 +1,17 @@
 # Purpose: Build the regression table for the time series analyses
 #
 # Inputs: 
-#     _intermediate/inflexp_date_cz.csv
-#     _intermediate/sci_weighted_inflation.csv
-#     _intermediate/dist_weighted_inflation.csv
-#     _intermediate/covariates.csv
-#     _intermediate/cpi_cz2000-timeseries.csv
-#     _intermediate/cpi_cz2000-timeseries_nakamura.csv
+#     _intermediate/inflexp_?_?.csv
+#     _intermediate/SPI_?.csv
+#     _intermediate/PPI_?.csv
+#     _intermediate/covariates_?.csv
+#     _intermediate/cpi_?.csv
+#
 # Outputs: 
 #     _output/time_series_regress_dat.csv
-# Date: 21/07/22
+#
+# Date: 18/09/22
+#
 # Steps:
 #     1. Prep all data sources
 #     2. Join all data sources
@@ -22,20 +24,60 @@ library(psychTools) # for writing latex
 library(stargazer) # for writing regression tables
 
 rm(list=ls())
-####################################
-##### 1. Prep all data sources #####
-####################################
 
+########################
+##### Make Choices #####
+########################
+
+
+# Do you want to look at US counties or EU countries?
+l <- "US"
+
+# Which survey?
+s <- "FRBNY"
+
+
+# Do you want to look at mean or median computation?
+c <- "median"
+
+
+
+###################################
+##### 1. Read in data sources #####
+###################################
+
+
+### Choose covariates you want to control for ###
+### These must be adjusted given the location ###
+
+
+# Read in covariates
+# Built in pre file
+dat_covariates <- read_csv(paste("../SocialInflationExpectation/_intermediate/covariates_",l,".csv", sep="")) %>% 
+  select(loc, med_hhinc2016, poor_share2010, rent_twobed2015) 
+
+U = uniq(dat_covariates$loc)
+a1 = accumarray(U$n,dat_covariates$med_hhinc2016, func = mean)
+a2 = accumarray(U$n,dat_covariates$poor_share2010, func = mean)
+a3 = accumarray(U$n,dat_covariates$rent_twobed2015, func = mean)
+
+dat_covariates <- tibble(loc = U$b, poor_share2010 = a2, med_hhinc2016 = a1, rent_twobed2015 = a3)
+
+
+# Read in CPI data 
+# Built in b1_create_state_cpi
+dat_cpi <- read_csv(paste("../SocialInflationExpectation/_intermediate/cpi_",l,".csv", sep = ""))
+
+# Read in outwardness
+# Built in a1_county_data_collect
+dat_outward <- read_csv(paste("../SocialInflationExpectation/_intermediate/outwardness_",l,".csv", sep=""))
 
 # Read in baseline inflation expectations data
 # Built in a1_county_data_collect.R
-dat_inflex <- read_csv("../SocialInflationExpectation/_intermediate/inflexp_date_cz.csv")
-
-# choose mean or median computation of SPI and PPI here
-c <- "median"
+dat_inflexp <- read_csv(paste("../SocialInflationExpectation/_intermediate/inflexp_",l,"_",s,".csv", sep = ""))
 
 # Read in SCI-weighted inflation (Social Proximity to Inflation)
-# Built in a1_county_data_collect.R
+# Built in a1_create_SPI_PPI.R
 SPI <- read_csv(paste("../SocialInflationExpectation/_intermediate/SPI_",c,".csv",sep=""))
 
 # Read in distance-weighted inflation (Physical Proximity to Inflation)
@@ -44,52 +86,19 @@ SPI <- read_csv(paste("../SocialInflationExpectation/_intermediate/SPI_",c,".csv
 PPI <- read_csv(paste("../SocialInflationExpectation/_intermediate/PPI_",c,".csv",sep=""))
 
 
-# Join the weighted cases measures
-dat <- PPI %>% 
-  left_join(SPI, by=c("cz1"="user_loc", "date"="date")) %>%
-  rename(cz2000 = cz1)
-
-
-### Choose covariates you want to control for ###
-
-# Read in covariates
-# Built in a1_county_data_collect.R
-dat_covariates <- read_csv("../SocialInflationExpectation/_intermediate/covariates.csv") %>% 
-  select(cz2000, med_hhinc2016, poor_share2010, rent_twobed2015) 
-
-U = uniq(dat_covariates$cz2000)
-a1 = accumarray(U$n,dat_covariates$med_hhinc2016, func = mean)
-a2 = accumarray(U$n,dat_covariates$poor_share2010, func = mean)
-a3 = accumarray(U$n,dat_covariates$rent_twobed2015, func = mean)
-
-dat_covariates <- tibble(cz2000 = U$b, poor_share2010 = a2, med_hhinc2016 = a1, rent_twobed2015 = a3)
-
-
-# Read in CPI data 
-# Built in b1_create_state_cpi
-dat_cpi <- read_csv("../SocialInflationExpectation/_intermediate/cpi_cz2000-timeseries_nakamura.csv") %>%
-  arrange(cz2000, date) %>%
-  unique %>%
-  select(cz2000,date,pi_mean) %>%
-  rename(state_inflation = pi_mean)
-
-# Read in outwardness
-# Built in a1_county_data_collect
-dat_outward <- read_csv("../SocialInflationExpectation/_intermediate/outwardness.csv") %>%
-  rename(cz2000 = user_loc)
-
 
 #######################################
 ##### 2. Combine all data sources #####
 #######################################
 
-regress_dat <- dat_inflex %>% 
+regress_dat <- dat_inflexp %>% 
   # Join with social and physical distance to experiences inflation
-  inner_join(dat) %>% 
+  inner_join(PPI, by=c("loc"="user_loc", "date"="date")) %>% 
+  inner_join(SPI, by=c("loc"="user_loc", "date"="date")) %>% 
   # Join with covariates (!!! No time variation here !!!)
   left_join(dat_covariates) %>% 
   # Join with outwardness (!!! No time variation here !!!)
-  left_join(dat_outward) %>% 
+  left_join(dat_outward, by=c("loc"="user_loc")) %>% 
   # Join with cpi (!!! Only availabe in 2018, on regional not cz basis !!!)
   inner_join(dat_cpi) %>%
   # compute l
@@ -98,7 +107,7 @@ regress_dat <- dat_inflex %>%
   mutate(inflexp_lead = dplyr::lead(inflexp_median)) %>%
   mutate(SPI_lag = dplyr::lag(SPI2)) %>%
   mutate(PPI_lag = dplyr::lag(PPI2)) %>%
-  mutate(state_inflation_lag = dplyr::lag(state_inflation)) %>%
+  mutate(cpi_inflation_lag = dplyr::lag(cpi_inflation)) %>%
   # compute how much is adjusted for the next period
   mutate(inflexp_chg_lead = inflexp_lead - inflexp_median) %>%
   mutate(inflexp_chg_lag = inflexp_median - inflexp_lag) %>%
@@ -106,13 +115,14 @@ regress_dat <- dat_inflex %>%
   filter(!is.na(inflexp_lag))
 
 
-write_csv(regress_dat, "../SocialInflationExpectation/_output/time_series_regress_dat.csv")
+write_csv(regress_dat, paste("../SocialInflationExpectation/_output/regress_dat_",l,".csv", sep = ""))
 
 
 cor2latex(regress_dat[,c(3,7,10,12:16,23)],use = "pairwise", method="pearson", adjust="holm",stars=FALSE,
           digits=2,rowlabels=TRUE,lower=TRUE,apa=TRUE,short.names=TRUE,
           font.size ="scriptsize", heading="Correlation",
           caption="cor2latex",label="tab:cor",silent=FALSE,file=NULL,append=FALSE,cut=0,big=0)
+
 
 
 ###############################
