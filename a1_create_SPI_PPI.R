@@ -2,7 +2,6 @@
 #           Social Proximity to Inflation and Physical Proximity to Inflation
 #
 # Inputs: 
-#     _intermediate/covariates.csv
 #     _intermediate/sci.tsv
 #     _intermediate/outwardness.csv
 #     _intermediate/inflexp_date_cz.csv
@@ -54,13 +53,9 @@ dir.sci <- paste("../SocialInflationExpectation/_intermediate/sci_",l,".tsv",sep
 # created in pre file
 dir.dist <- paste("../SocialInflationExpectation/_intermediate/dist_",l,".csv",sep="")
 
-# Covariates
-# created in pre file
-dir.covariates <- paste("../SocialInflationExpectation/_intermediate/covariates_",l,".csv",sep="")
-      
 # Inflation expectations
 # created in pre file
-dir.inflexp <- paste("../SocialInflationExpectation/_intermediate/inflexp_",l,"_",c,".csv",sep="")
+dir.inflexp <- paste("../SocialInflationExpectation/_intermediate/inflexp_",l,"_",s,".csv",sep="")
 
 # Inflation
 # created in pre file
