@@ -267,6 +267,7 @@ if (s == "FRBNY") {
   # Read in Inflation expectations micro-data
   dat_inflex <- read_xlsx(dir.inflexp) %>%
       rename(cz2000 = "_COMMUTING_ZONE", inflexp = "Q8v2part2") %>% # rename as name leads to error
+      mutate(inflexp = as.numeric(inflexp)) %>% # needs to be numeric for further operations
       subset(select = c(date,userid,inflexp,cz2000)) %>%
       mutate(date = as.character(date)) %>%
       mutate(date = parse_date(date, "%Y%m")) %>%
@@ -276,13 +277,14 @@ if (s == "FRBNY") {
 } else if (s == "Michigan") { # THIS ONE STILL NEEDS TO BE WRITTEN!!!!!
   # Read in Inflation expectations micro-data
   dat_inflex <- read_xlsx(dir.inflexp) %>%
-    rename(cz2000 = "_COMMUTING_ZONE", inflexp = "Q8v2part2") %>% # rename as name leads to error
-    subset(select = c(date,userid,inflexp,cz2000)) %>%
-    mutate(date = as.character(date)) %>%
-    mutate(date = parse_date(date, "%Y%m")) %>%
-    group_by(cz2000) %>% 
-    arrange(cz2000, date) %>% # for overview
-    ungroup
+      rename(cz2000 = "_COMMUTING_ZONE", inflexp = "Q8v2part2") %>% # rename as name leads to error
+      mutate(inflexp = as.numeric(inflexp)) %>%
+      subset(select = c(date,userid,inflexp,cz2000)) %>%
+      mutate(date = as.character(date)) %>%
+      mutate(date = parse_date(date, "%Y%m")) %>%
+      group_by(cz2000) %>% 
+      arrange(cz2000, date) %>% # for overview
+      ungroup
 }
 
 # count obervations in each cz date pair
@@ -303,7 +305,7 @@ dat_inflex_median <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select 
   mutate(cz2000 = as.character(cz2000))
 
 
-write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/inflexp_date_cz_",l,".csv",sep=""))
+write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/inflexp_",l,".csv",sep=""))
 
 
 
