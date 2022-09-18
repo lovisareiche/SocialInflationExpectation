@@ -1,29 +1,31 @@
-
+# Purpose: Prepare the datasets such that they are in the required shape for the next steps
+#
 # Inputs: 
-#     sci.tsv
-#     covariates.xlsx
-#     dist.xlsx
-#     inflexp.xlsx
+#     _input/sci.tsv
+#     _input/covariates.xlsx
+#     _input/inflexp.xlsx
 #     _input/geo_match.xlsx
+#     _input/dist.xlsx
 # Outputs: 
 #     _intermediate/covariates.csv
 #     _intermediate/sci.tsv
 #     _intermediate/outwardness.csv
 #     _intermediate/inflexp_date_cz.csv
-
+#
 # Date: 17/09/2022
 # written by: Lovisa Reiche
-
+#
 # Steps:
 #     1. Specify data location
 #     2. Prep the SCI data
 #     3. Prep Inflation Expectation data
+#     4. Prep Distance data
+#     5. Prep Covariates data
 
 
 rm(list = ls())
 library(tidyverse) # general commands
 library(readxl) # to read excel files
-#library(lubridate)
 library(pracma) # for matlab functions (uniq,acumarray)
 
 ########################################
@@ -51,10 +53,6 @@ s <- "FRBNY"
 # https://data.humdata.org/dataset/social-connectedness-index'
 dir.sci <- paste("../SocialInflationExpectation/_input/",l,"/sci.tsv",sep="")
 
-# Distance
-# https://data.nber.org/data/county-distance-database.html
-dir.dist <- paste("../SocialInflationExpectation/_input/",l,"/dist.xlsx",sep="")
-
 # Covariates
 # https://opportunityinsights.org/data/?geographic_level=102&topic=0&paper_id=0#resource-listing
 dir.covariates <- paste("../SocialInflationExpectation/_input/",l,"/covariates.xlsx",sep="")
@@ -73,10 +71,17 @@ dir.geo <- paste("../SocialInflationExpectation/_input/",l,"/geo_match.xlsx",sep
 # https://www.census.gov/data/datasets/time-series/demo/popest/2020s-counties-total.html#par_textimage_70769902
 dir.pop <- paste("../SocialInflationExpectation/_input/",l,"/pop_",l,".xlsx",sep="")
 
+# Distance
+# https://data.nber.org/data/county-distance-database.html
+dir.dist <- paste("../SocialInflationExpectation/_input/",l,"/dist.xlsx",sep="")
+
+
 
 ############################
 ##### 2. Prep SCI data #####
 ############################
+
+
 
 # Need to convert FIPS to 2000 commuting zones 
 ##############################################
@@ -95,15 +100,6 @@ dat_pop <- read_xlsx(dir.pop) %>%
   unite("fips",STATE:COUNTY, sep = "") %>%
   select(fips, pop = POP2021)
 
-
-# Read in Covariates, goal: assign 2000 cz to all areas in covariates
-dat_covariates <- read_xlsx(dir.covariates) %>%
-  rename(cz1990 = cz) %>% # rename for clarity
-  mutate(cz1990 = str_pad(as.character(cz1990), 5, "left", "0")) %>% # shape into same format
-  # left_join with geo data to use cz2000 instead of cz1990
-  left_join(dat_geo,by = "cz1990")
-
-write_csv(dat_covariates,paste("../SocialInflationExpectation/_intermediate/covariates_",l,".csv",sep=""))
 
 # Read in SCI, goal: convert fips to cz2000 (more coarse)
 dat_sci <- read_tsv(dir.sci) %>%
@@ -260,20 +256,34 @@ write_tsv(dat_sci_final,paste("../SocialInflationExpectation/_intermediate/sci_"
 write_csv(outwardness_dat,paste("../SocialInflationExpectation/_intermediate/outwardness_",l,".csv",sep=""))
 
 
+
 ##########################################
 ##### 3. Prep inflation expectations #####
 ##########################################
 
 
-# Read in Inflation expectations micro-data
-dat_inflex <- read_xlsx(dir.inflexp) %>%
-  rename(cz2000 = "_COMMUTING_ZONE", inflexp = "Q8v2part2") %>% # rename as name leads to error
-  subset(select = c(date,userid,inflexp,cz2000)) %>%
-  mutate(date = as.character(date)) %>%
-  mutate(date = parse_date(date, "%Y%m")) %>%
-  group_by(cz2000) %>% 
-  arrange(cz2000, date) %>% # for overview
-  ungroup
+
+if (s == "FRBNY") {
+  # Read in Inflation expectations micro-data
+  dat_inflex <- read_xlsx(dir.inflexp) %>%
+      rename(cz2000 = "_COMMUTING_ZONE", inflexp = "Q8v2part2") %>% # rename as name leads to error
+      subset(select = c(date,userid,inflexp,cz2000)) %>%
+      mutate(date = as.character(date)) %>%
+      mutate(date = parse_date(date, "%Y%m")) %>%
+      group_by(cz2000) %>% 
+      arrange(cz2000, date) %>% # for overview
+      ungroup
+} else if (s == "Michigan") { # THIS ONE STILL NEEDS TO BE WRITTEN!!!!!
+  # Read in Inflation expectations micro-data
+  dat_inflex <- read_xlsx(dir.inflexp) %>%
+    rename(cz2000 = "_COMMUTING_ZONE", inflexp = "Q8v2part2") %>% # rename as name leads to error
+    subset(select = c(date,userid,inflexp,cz2000)) %>%
+    mutate(date = as.character(date)) %>%
+    mutate(date = parse_date(date, "%Y%m")) %>%
+    group_by(cz2000) %>% 
+    arrange(cz2000, date) %>% # for overview
+    ungroup
+}
 
 # count obervations in each cz date pair
 dat_inflex_count <- aggregate(dat_inflex$userid, by=subset(dat_inflex, select = c(date,cz2000)), FUN = length) %>%
@@ -294,3 +304,62 @@ dat_inflex_median <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select 
 
 
 write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/inflexp_date_cz_",l,".csv",sep=""))
+
+
+
+#################################
+##### 4. Prep Distance data #####
+#################################
+
+
+
+# Read in data for county distances
+dat_dist <- read_xlsx(dir.dist) %>%
+  mutate(county1 = as.character(county1), county2 = as.character(county2)) %>% # mutate to characters for joining
+  inner_join(dat_geo,by = c("county1"="fips")) %>%
+  rename(cz1 = cz2000) %>%
+  mutate(cz1 = as.numeric(cz1)) %>% # mutate back for pracma functions
+  subset(select = c(cz1,mi_to_county,county2)) %>%
+  inner_join(dat_geo,by = c("county2"="fips")) %>%
+  rename(cz2 = cz2000) %>%
+  mutate(cz2 = as.numeric(cz2)) %>% # mutate back for pracma functions
+  subset(select = c(cz1,mi_to_county,cz2))
+
+
+# Since distances are given for counties we need to convert to commuting zones
+# as distance we choose the average distance between cz1 and cz2
+
+for (i in unique(dat_dist$cz1)) {
+  
+  print(i)
+  
+  subset <- filter(dat_dist, cz1 == i)
+  U = uniq(subset$cz2)
+  a = accumarray(U$n,subset$mi_to_county, func = mean)
+  
+  if (i==dat_dist$cz1[1]){
+    dat_dist_final <- tibble(cz1 = rep(i,times=length(a)), cz2 = as.character(U$b), mi_to_cz = a)
+  } else {
+    dat_dist_final <- rbind(dat_dist_final,tibble(cz1 = rep(i,times=length(a)), cz2 = as.character(U$b), mi_to_cz = a))
+  }
+  
+}
+
+write_csv(dat_dist_final,paste("../SocialInflationExpectation/_intermediate/dist_",l,".csv",sep=""))
+
+
+
+###################################
+##### 5. Prep Covariates data #####
+###################################
+
+
+
+# Read in Covariates, goal: assign 2000 cz to all areas in covariates
+dat_covariates <- read_xlsx(dir.covariates) %>%
+  rename(cz1990 = cz) %>% # rename for clarity
+  mutate(cz1990 = str_pad(as.character(cz1990), 5, "left", "0")) %>% # shape into same format
+  # left_join with geo data to use cz2000 instead of cz1990
+  left_join(dat_geo,by = "cz1990")
+
+write_csv(dat_covariates,paste("../SocialInflationExpectation/_intermediate/covariates_",l,".csv",sep=""))
