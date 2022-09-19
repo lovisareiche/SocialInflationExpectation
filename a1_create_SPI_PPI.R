@@ -76,99 +76,149 @@ dat_dist <- read_csv(dir.dist)
 ###################################################
 
 
-
-spi_mean <- dat_sci %>%
-  # Join in the Inflation data for foreign cz
-  inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>%
-  rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
-  # Join actual inflation data for foreign cz'
-  inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
-  rename(cpi_inflation_fr = cpi_inflation) %>%
-  # Join inflation exp for local cz by date
-  inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
-  rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
-  # Collapse and make the final weighted measure
-  group_by(user_loc, date) %>% 
-  # compute spi using differences
-  mutate(SPI1 = sum((inflexp_mean_fr)*share_sci)) %>%
-  mutate(SPI2 = sum((inflexp_mean_fr-inflexp_mean_user)*share_sci)) %>%
-  summarise(SPI1, SPI2, SPI3 = sum((cpi_inflation_fr)*share_sci)) %>%
-  distinct(.keep_all = TRUE) %>%
-  ungroup
-
-write_csv(spi_mean, "../SocialInflationExpectation/_intermediate/SPI_mean.csv")
-
-spi_median <- dat_sci %>%
-  # Join in the Inflation data for foreign cz
-  inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>%
-  rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
-  # Join actual inflation data for foreign cz'
-  inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
-  rename(cpi_inflation_fr = cpi_inflation) %>%
-  # Join inflation exp for local cz by date
-  inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
-  rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
-  # Collapse and make the final weighted measure
-  group_by(user_loc, date) %>% 
-  # compute spi using differences
-  mutate(SPI1 = sum((inflexp_median_fr)*share_sci)) %>%
-  mutate(SPI2 = sum((inflexp_median_fr-inflexp_median_user)*share_sci)) %>%
-  summarise(SPI1, SPI2, SPI3 = sum((cpi_inflation_fr)*share_sci)) %>%
-  distinct(.keep_all = TRUE) %>%
-  ungroup
-
-write_csv(spi_median, "../SocialInflationExpectation/_intermediate/SPI_median.csv")
-
-
-
-###################################################
-##### 2. Create Social Proximity to Inflation #####
-###################################################
-
-
-
-dist_median <- dat_dist %>%
-  summarise(user_loc = as.double(user_loc), fr_loc = as.double(fr_loc), dist) %>%
-  # Join in the Inflation data
-  inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>% 
-  rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
-  # Join actual inflation data for foreign cz'
-  inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
-  rename(cpi_inflation_fr = cpi_inflation) %>%
-  # Join inflation exp for local cz by date
-  inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
-  rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+if (l == "US") {
+  spi_mean <- dat_sci %>%
+    # Join in the Inflation data for foreign cz
+    inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>%
+    rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
+    # Join actual inflation data for foreign cz'
+    inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
+    rename(cpi_inflation_fr = cpi_inflation) %>%
+    # Join inflation exp for local cz by date
+    inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
+    rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+    # Collapse and make the final weighted measure
+    group_by(user_loc, date) %>% 
+    # compute spi using differences
+    mutate(SPI1 = sum((inflexp_mean_fr)*share_sci)) %>%
+    mutate(SPI2 = sum((inflexp_mean_fr-inflexp_mean_user)*share_sci)) %>%
+    summarise(SPI1, SPI2, SPI3 = sum((cpi_inflation_fr)*share_sci)) %>%
+    distinct(.keep_all = TRUE) %>%
+    ungroup
   
-  # Collapse and make the final weighted measure
-  group_by(user_loc, date) %>% 
-  mutate(PPI1 = sum((inflexp_median_fr)/(1+dist))) %>%
-  mutate(PPI2 = sum((inflexp_median_fr-inflexp_median_user)/(1+dist))) %>%
-  summarise(PPI1, PPI2, PPI3 = sum((cpi_inflation_fr)/(1+dist))) %>%
-  distinct(.keep_all = TRUE) %>%
-  ungroup
+  write_csv(spi_mean, paste("../SocialInflationExpectation/_intermediate/SPI_mean_",l,".csv",sep=""))
 
-write_csv(dist_median, "../SocialInflationExpectation/_intermediate/PPI_median.csv")
-
-
-dist_mean <- dat_dist %>%
-  summarise(user_loc = as.double(user_loc), fr_loc = as.double(fr_loc), dist) %>%
-  # Join in the Inflation data
-  inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>% 
-  rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
-  # Join actual inflation data for foreign cz'
-  inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
-  rename(cpi_inflation_fr = cpi_inflation) %>%
-  # Join inflation exp for local cz by date
-  inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
-  rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+  spi_median <- dat_sci %>%
+    # Join in the Inflation data for foreign cz
+    inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>%
+    rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
+    # Join actual inflation data for foreign cz'
+    inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
+    rename(cpi_inflation_fr = cpi_inflation) %>%
+    # Join inflation exp for local cz by date
+    inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
+    rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+    # Collapse and make the final weighted measure
+    group_by(user_loc, date) %>% 
+    # compute spi using differences
+    mutate(SPI1 = sum((inflexp_median_fr)*share_sci)) %>%
+    mutate(SPI2 = sum((inflexp_median_fr-inflexp_median_user)*share_sci)) %>%
+    summarise(SPI1, SPI2, SPI3 = sum((cpi_inflation_fr)*share_sci)) %>%
+    distinct(.keep_all = TRUE) %>%
+    ungroup
   
-  # Collapse and make the final weighted measure
-  group_by(user_loc, date) %>% 
-  mutate(PPI1 = sum((inflexp_mean_fr)/(1+dist))) %>%
-  mutate(PPI2 = sum((inflexp_mean_fr-inflexp_mean_user)/(1+dist))) %>%
-  summarise(PPI1, PPI2, PPI3 = sum((cpi_inflation_fr)/(1+dist))) %>%
-  distinct(.keep_all = TRUE) %>%
-  ungroup
+  write_csv(spi_median, paste("../SocialInflationExpectation/_intermediate/SPI_median_",l,".csv", sep = ""))
 
-write_csv(dist_mean, "../SocialInflationExpectation/_intermediate/PPI_mean.csv")
+} else if (l == "EU") {
 
+  spi_median <- dat_sci %>%
+    # Join in the Inflation data for foreign cz
+    inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>%
+    rename(inflexp_median_fr = inflexp_median) %>%
+    # Join actual inflation data for foreign cz'
+    inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
+    rename(cpi_inflation_fr = cpi_inflation) %>%
+    # Join inflation exp for local cz by date
+    inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
+    rename(inflexp_median_user = inflexp_median) %>%
+    # Collapse and make the final weighted measure
+    group_by(user_loc, date) %>% 
+    # compute spi using differences
+    mutate(SPI1 = sum((inflexp_median_fr)*share_sci)) %>%
+    mutate(SPI2 = sum((inflexp_median_fr-inflexp_median_user)*share_sci)) %>%
+    summarise(SPI1, SPI2, SPI3 = sum((cpi_inflation_fr)*share_sci)) %>%
+    distinct(.keep_all = TRUE) %>%
+    ungroup
+  
+  write_csv(spi_median, paste("../SocialInflationExpectation/_intermediate/SPI_median_",l,".csv", sep = ""))
+}
+
+
+
+#####################################################
+##### 3. Create Physical Proximity to Inflation #####
+#####################################################
+
+
+if (l == "US") {
+  
+  dist_median <- dat_dist %>%
+    summarise(user_loc = as.double(user_loc), fr_loc = as.double(fr_loc), dist) %>%
+    # Join in the Inflation data
+    inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>% 
+    rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
+    # Join actual inflation data for foreign cz'
+    inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
+    rename(cpi_inflation_fr = cpi_inflation) %>%
+    # Join inflation exp for local cz by date
+    inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
+    rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+    
+    # Collapse and make the final weighted measure
+    group_by(user_loc, date) %>% 
+    mutate(PPI1 = sum((inflexp_median_fr)/(1+dist))) %>%
+    mutate(PPI2 = sum((inflexp_median_fr-inflexp_median_user)/(1+dist))) %>%
+    summarise(PPI1, PPI2, PPI3 = sum((cpi_inflation_fr)/(1+dist))) %>%
+    distinct(.keep_all = TRUE) %>%
+    ungroup
+  
+  write_csv(dist_median, paste("../SocialInflationExpectation/_intermediate/PPI_median_",l,".csv", sep = ""))
+  
+  
+  dist_mean <- dat_dist %>%
+    summarise(user_loc = as.double(user_loc), fr_loc = as.double(fr_loc), dist) %>%
+    # Join in the Inflation data
+    inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>% 
+    rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
+    # Join actual inflation data for foreign cz'
+    inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
+    rename(cpi_inflation_fr = cpi_inflation) %>%
+    # Join inflation exp for local cz by date
+    inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
+    rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+    
+    # Collapse and make the final weighted measure
+    group_by(user_loc, date) %>% 
+    mutate(PPI1 = sum((inflexp_mean_fr)/(1+dist))) %>%
+    mutate(PPI2 = sum((inflexp_mean_fr-inflexp_mean_user)/(1+dist))) %>%
+    summarise(PPI1, PPI2, PPI3 = sum((cpi_inflation_fr)/(1+dist))) %>%
+    distinct(.keep_all = TRUE) %>%
+    ungroup
+  
+  write_csv(dist_mean, paste("../SocialInflationExpectation/_intermediate/PPI_mean_",l,".csv", sep = ""))
+  
+
+} else if (l == "EU") {
+  
+  dist_median <- dat_dist %>%
+    summarise(user_loc , fr_loc , dist) %>%
+    # Join in the Inflation data
+    inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>% 
+    rename(inflexp_median_fr = inflexp_median) %>%
+    # Join actual inflation data for foreign cz'
+    inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
+    rename(cpi_inflation_fr = cpi_inflation) %>%
+    # Join inflation exp for local cz by date
+    inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
+    rename(inflexp_median_user = inflexp_median) %>%
+    
+    # Collapse and make the final weighted measure
+    group_by(user_loc, date) %>% 
+    mutate(PPI1 = sum((inflexp_median_fr)/(1+dist))) %>%
+    mutate(PPI2 = sum((inflexp_median_fr-inflexp_median_user)/(1+dist))) %>%
+    summarise(PPI1, PPI2, PPI3 = sum((cpi_inflation_fr)/(1+dist))) %>%
+    distinct(.keep_all = TRUE) %>%
+    ungroup
+  
+  write_csv(dist_median, paste("../SocialInflationExpectation/_intermediate/PPI_median_",l,".csv", sep = ""))
+}
