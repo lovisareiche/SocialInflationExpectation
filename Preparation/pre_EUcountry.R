@@ -55,9 +55,8 @@ s <- "ECFIN"
 dir.sci <- paste("../SocialInflationExpectation/_input/",l,"/sci.tsv",sep="")
 
 # Covariates
-# https://opportunityinsights.org/data/?geographic_level=102&topic=0&paper_id=0#resource-listing
-#dir.covariates <- paste("../SocialInflationExpectation/_input/",l,"/covariates.xlsx",sep="")
-# Note: use 2010 FIPS and 1990 commuting zones
+# https://ec.europa.eu/eurostat/web/main/data/database
+dir.covariates <- paste("../SocialInflationExpectation/_input/",l,"/covariates.xlsx",sep="")
 
 # Inflation
 #  Consumer and Business Surveys, © 1985-2022 European Commission (ECFIN)
@@ -293,7 +292,8 @@ for (i in 1:length(dat_cpi$quarter))
 dat_cpi <- dat_cpi %>%
   mutate(month = str_pad(as.character(month), 2, "left", "0")) %>%
   mutate(date = paste(year,month,sep="-")) %>%
-  mutate(date = parse_date(date,"%Y-%m"))
+  mutate(date = parse_date(date,"%Y-%m")) %>%
+  select(-month,-year,-quarter)
 
 #save
 write_csv(dat_cpi,paste("../SocialInflationExpectation/_intermediate/cpi_",l,".csv",sep=""))
@@ -305,15 +305,11 @@ write_csv(dat_cpi,paste("../SocialInflationExpectation/_intermediate/cpi_",l,".c
 ###################################
 
 
-# This still needs to be worked on!
+# Already in the right format
 
 # Read in Covariates, goal: assign 2000 cz to all areas in covariates
 dat_covariates <- read_xlsx(dir.covariates) %>%
-  rename(cz1990 = cz) %>% # rename for clarity
-  mutate(cz1990 = as.character(cz1990)) %>%
-  # left_join with geo data to use cz2000 instead of cz1990
-  left_join(dat_geo,by = "cz1990") %>%
-  rename(loc = cz2000)
+  select(-GEO)
 
 write_csv(dat_covariates,paste("../SocialInflationExpectation/_intermediate/covariates_",l,".csv",sep=""))
 
