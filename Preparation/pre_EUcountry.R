@@ -160,6 +160,7 @@ countries <- colnames(dat_inflex)[2:length(dat_inflex)]
 dat_inflex <- data.frame(dat_inflex[,"date"],stack(dat_inflex[,countries])) %>%
   rename(loc = ind, inflexp_median = values) %>%
   filter(!is.na(inflexp_median)) 
+dat_inflex <- dat_inflex[,c(1,3,2)]
 
 # set day to first of the month to align with other data
 day(dat_inflex$date) <- 1
