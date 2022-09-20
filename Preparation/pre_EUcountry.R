@@ -160,53 +160,10 @@ countries <- colnames(dat_inflex)[2:length(dat_inflex)]
 # reshape in the required format
 dat_inflex <- data.frame(dat_inflex[,"date"],stack(dat_inflex[,countries])) %>%
   rename(loc = ind, inflexp_median = values) %>%
-  filter(!is.na(inflexp_median)) %>%
-  mutate(year = substr(date,1,4), month = substr(date,6,7))
+  filter(!is.na(inflexp_median)) 
 
-# we want to get the date format in quarters as is for cpi data (this is in quarters as well but written out monthly)
-for (i in 1:nrow(dat_inflex)) {
-  if (dat_inflex$month[i] == "01") {
-    dat_inflex$quarter[i] = 1
-  }
-  else if (dat_inflex$month[i] == "02") {
-    dat_inflex$quarter[i] = 1
-  }
-  else if (dat_inflex$month[i] == "03") {
-    dat_inflex$quarter[i] = 1
-  }
-  else if (dat_inflex$month[i] == "04") {
-    dat_inflex$quarter[i] = 2
-  }
-  else if (dat_inflex$month[i] == "05") {
-    dat_inflex$quarter[i] = 2
-  }
-  else if (dat_inflex$month[i] == "06") {
-    dat_inflex$quarter[i] = 2
-  }
-  else if (dat_inflex$month[i] == "07") {
-    dat_inflex$quarter[i] = 3
-  }
-  else if (dat_inflex$month[i] == "08") {
-    dat_inflex$quarter[i] = 3
-  }
-  else if (dat_inflex$month[i] == "09") {
-    dat_inflex$quarter[i] = 3
-  }
-  else if (dat_inflex$month[i] == "10") {
-    dat_inflex$quarter[i] = 4
-  }
-  else if (dat_inflex$month[i] == "11") {
-    dat_inflex$quarter[i] = 4
-  }
-  else if (dat_inflex$month[i] == "12") {
-    dat_inflex$quarter[i] = 4
-  }
-}
-
-dat_inflex <- dat_inflex %>%
-  mutate(date = paste(year,quarter,sep = "-")) %>%
-  select(-year,-month,-quarter) %>%
-  unique
+# set day to first of the month to align with other data
+day(dat_inflex$date) <- 1
 
 #save
 write_csv(dat_inflex,paste("../SocialInflationExpectation/_intermediate/inflexp_",l,"_",s,".csv",sep=""))
@@ -227,19 +184,126 @@ dat_cpi <- data.frame(dat_cpi[,"loc"], stack(dat_cpi[,quarters])) %>%
   rename(date = ind, cpi_inflation = values) %>%
   filter(!is.na(cpi_inflation)) %>%
   mutate(year = substr(date,1,4), quarter = substr(date,5,5)) %>%
-  mutate(date = paste(year,quarter,sep = "-")) %>%
-  select(-year,-quarter)
+  arrange(loc,year,quarter)
+
+dat_cpi <- data.frame(lapply(dat_cpi,rep,rep(3,nrow(dat_cpi))))
+
+# ridiculously inefficient piece to add month  
+for (i in 1:length(dat_cpi$quarter))
+{
+  if (i ==1)
+  {
+    dat_cpi$month[i] = 01
+  }
+  else if (i ==2)
+  {
+    dat_cpi$month[i] = 02
+  }
+  else if (i ==3)
+  {
+    dat_cpi$month[i] = 03
+  }
+  else if (i ==4)
+  {
+    dat_cpi$month[i] = 04
+  }
+  else if (i ==5)
+  {
+    dat_cpi$month[i] = 05
+  }
+  else if (i ==6)
+  {
+    dat_cpi$month[i] = 06
+  }
+  else if (i ==7)
+  {
+    dat_cpi$month[i] = 07
+  }
+  else if (i ==8)
+  {
+    dat_cpi$month[i] = 08
+  }
+  else if (i ==9)
+  {
+    dat_cpi$month[i] = 09
+  }
+  else if (i ==10)
+  {
+    dat_cpi$month[i] = 10
+  }
+  else if (i ==11)
+  {
+    dat_cpi$month[i] = 11
+  }
+  else if (i ==12)
+  {
+    dat_cpi$month[i] = 12
+  }
+  
+  else if (dat_cpi$quarter[i] ==1 & dat_cpi$year[i] != dat_cpi$year[i-1])
+  {
+    dat_cpi$month[i] = 01
+  }
+  else if (dat_cpi$quarter[i] ==1 & dat_cpi$year[i] != dat_cpi$year[i-2])
+  {
+    dat_cpi$month[i] = 02
+  }
+  else if (dat_cpi$quarter[i] ==1 & dat_cpi$year[i] != dat_cpi$year[i-3])
+  {
+    dat_cpi$month[i] = 03
+  }
+  else if (dat_cpi$quarter[i] ==2 & dat_cpi$year[i] != dat_cpi$year[i-4])
+  {
+    dat_cpi$month[i] = 04
+  }
+  else if (dat_cpi$quarter[i] ==2 & dat_cpi$year[i] != dat_cpi$year[i-5])
+  {
+    dat_cpi$month[i] = 05
+  }
+  else if (dat_cpi$quarter[i] ==2 & dat_cpi$year[i] != dat_cpi$year[i-6])
+  {
+    dat_cpi$month[i] = 06
+  }
+  else if (dat_cpi$quarter[i] ==3 & dat_cpi$year[i] != dat_cpi$year[i-7])
+  {
+    dat_cpi$month[i] = 07
+  }
+  else if (dat_cpi$quarter[i] ==3 & dat_cpi$year[i] != dat_cpi$year[i-8])
+  {
+    dat_cpi$month[i] = 08
+  }
+  else if (dat_cpi$quarter[i] ==3 & dat_cpi$year[i] != dat_cpi$year[i-9])
+  {
+    dat_cpi$month[i] = 09
+  }
+  else if (dat_cpi$quarter[i] ==4 & dat_cpi$year[i] != dat_cpi$year[i-10])
+  {
+    dat_cpi$month[i] = 10
+  }
+  else if (dat_cpi$quarter[i] ==4 & dat_cpi$year[i] != dat_cpi$year[i-11])
+  {
+    dat_cpi$month[i] = 11
+  }
+  else if (dat_cpi$quarter[i] ==4 & dat_cpi$year[i] != dat_cpi$year[i-12])
+  {
+    dat_cpi$month[i] = 12
+  }
+}
+
+dat_cpi <- dat_cpi %>%
+  mutate(month = str_pad(as.character(month), 2, "left", "0")) %>%
+  mutate(date = paste(year,month,sep="-")) %>%
+  mutate(date = parse_date(date,"%Y-%m"))
 
 #save
 write_csv(dat_cpi,paste("../SocialInflationExpectation/_intermediate/cpi_",l,".csv",sep=""))
 
 
 
-
-
 ###################################
 ##### 5. Prep Covariates data #####
 ###################################
+
 
 # This still needs to be worked on!
 
