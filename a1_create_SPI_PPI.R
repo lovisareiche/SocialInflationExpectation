@@ -32,10 +32,10 @@ library(tidyverse)
 
 
 # Do you want to look at US counties or EU countries?
-l <- "US"
+l <- "EU"
 
 # Which survey?
-s <- "FRBNY"
+s <- "ECFIN"
 
 
 

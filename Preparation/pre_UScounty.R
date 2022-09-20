@@ -298,15 +298,9 @@ if (s == "FRBNY") {
 dat_inflex_count <- aggregate(dat_inflex$userid, by=subset(dat_inflex, select = c(date,cz2000)), FUN = length) %>%
   rename(obs = x)
 
-# calculate average expectations in each cz date pair
-dat_inflex_mean <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = c(date,cz2000)), FUN = mean, na.action = na.rm) %>%
-  rename(inflexp_mean = x) %>%
-  inner_join(dat_inflex_count) %>%
-  filter(!is.na(inflexp_mean))
-
 dat_inflex_median <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = c(date,cz2000)), FUN = median, na.action = na.rm) %>%
   rename(inflexp_median = x) %>%
-  inner_join(dat_inflex_mean) %>%
+  inner_join(dat_inflex_count) %>%
   filter(!is.na(inflexp_median)) %>%
   filter(obs>=3) %>%
   mutate(cz2000 = as.character(cz2000)) %>%
