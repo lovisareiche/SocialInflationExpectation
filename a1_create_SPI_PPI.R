@@ -4,7 +4,7 @@
 # Inputs: 
 #     _intermediate/sci.tsv
 #     _intermediate/outwardness.csv
-#     _intermediate/inflexp_date_cz.csv
+#     _intermediate/inflexp.csv
 #     _input/dist.xlsx
 #
 # Outputs: 
@@ -80,13 +80,13 @@ if (l == "US") {
   spi_mean <- dat_sci %>%
     # Join in the Inflation data for foreign cz
     inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>%
-    rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
+    rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean) %>%
     # Join actual inflation data for foreign cz'
     inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
     rename(cpi_inflation_fr = cpi_inflation) %>%
     # Join inflation exp for local cz by date
     inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
-    rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+    rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean) %>%
     # Collapse and make the final weighted measure
     group_by(user_loc, date) %>% 
     # compute spi using differences
@@ -101,13 +101,13 @@ if (l == "US") {
   spi_median <- dat_sci %>%
     # Join in the Inflation data for foreign cz
     inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>%
-    rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
+    rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean) %>%
     # Join actual inflation data for foreign cz'
     inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
     rename(cpi_inflation_fr = cpi_inflation) %>%
     # Join inflation exp for local cz by date
     inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
-    rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+    rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean) %>%
     # Collapse and make the final weighted measure
     group_by(user_loc, date) %>% 
     # compute spi using differences
@@ -125,12 +125,14 @@ if (l == "US") {
     # Join in the Inflation data for foreign cz
     inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>%
     rename(inflexp_median_fr = inflexp_median) %>%
+    filter(!is.na(inflexp_median_fr)) %>%
     # Join actual inflation data for foreign cz'
     inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
     rename(cpi_inflation_fr = cpi_inflation) %>%
     # Join inflation exp for local cz by date
     inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
     rename(inflexp_median_user = inflexp_median) %>%
+    filter(!is.na(inflexp_median_user)) %>%
     # Collapse and make the final weighted measure
     group_by(user_loc, date) %>% 
     # compute spi using differences
@@ -156,13 +158,13 @@ if (l == "US") {
     summarise(user_loc = as.double(user_loc), fr_loc = as.double(fr_loc), dist) %>%
     # Join in the Inflation data
     inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>% 
-    rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
+    rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean) %>%
     # Join actual inflation data for foreign cz'
     inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
     rename(cpi_inflation_fr = cpi_inflation) %>%
     # Join inflation exp for local cz by date
     inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
-    rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+    rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean) %>%
     
     # Collapse and make the final weighted measure
     group_by(user_loc, date) %>% 
@@ -179,13 +181,13 @@ if (l == "US") {
     summarise(user_loc = as.double(user_loc), fr_loc = as.double(fr_loc), dist) %>%
     # Join in the Inflation data
     inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>% 
-    rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean, obs_fr = obs) %>%
+    rename(inflexp_median_fr = inflexp_median, inflexp_mean_fr = inflexp_mean) %>%
     # Join actual inflation data for foreign cz'
     inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
     rename(cpi_inflation_fr = cpi_inflation) %>%
     # Join inflation exp for local cz by date
     inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
-    rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean, obs_user = obs) %>%
+    rename(inflexp_median_user = inflexp_median, inflexp_mean_user = inflexp_mean) %>%
     
     # Collapse and make the final weighted measure
     group_by(user_loc, date) %>% 
@@ -205,12 +207,14 @@ if (l == "US") {
     # Join in the Inflation data
     inner_join(dat_inflexp, by=c("fr_loc"="loc")) %>% 
     rename(inflexp_median_fr = inflexp_median) %>%
+    filter(!is.na(inflexp_median_fr)) %>%
     # Join actual inflation data for foreign cz'
     inner_join(dat_cpi, by=c("fr_loc"="loc", "date")) %>%
     rename(cpi_inflation_fr = cpi_inflation) %>%
     # Join inflation exp for local cz by date
     inner_join(dat_inflexp, by=c("user_loc"="loc","date")) %>%
     rename(inflexp_median_user = inflexp_median) %>%
+    filter(!is.na(inflexp_median_user)) %>%
     
     # Collapse and make the final weighted measure
     group_by(user_loc, date) %>% 
