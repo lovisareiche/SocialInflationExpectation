@@ -279,10 +279,12 @@ if (s == "FRBNY") {
       group_by(cz2000) %>% 
       arrange(cz2000, date) %>% # for overview
       ungroup
-} else if (s == "Michigan") { # THIS ONE STILL NEEDS TO BE WRITTEN!!!!!
+} else if (s == "Michigan") { 
+  # THIS ONE STILL NEEDS TO BE WRITTEN!!!!!
   # Read in Inflation expectations micro-data
   dat_inflex <- read_xlsx(dir.inflexp) %>%
-      rename(cz2000 = "_COMMUTING_ZONE", inflexp = "Q8v2part2") %>% # rename as name leads to error
+      rename(cz2000 = "Region", inflexp = "PX1Q2") %>% # rename
+    # NOTE: Michigan only records region so not useful in this context
       mutate(inflexp = as.numeric(inflexp)) %>%
       subset(select = c(date,userid,inflexp,cz2000)) %>%
       mutate(date = as.character(date)) %>%
