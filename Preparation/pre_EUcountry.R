@@ -205,7 +205,8 @@ for (i in 1:nrow(dat_inflex)) {
 
 dat_inflex <- dat_inflex %>%
   mutate(date = paste(year,quarter,sep = "-")) %>%
-  select(-year,-month,-quarter)
+  select(-year,-month,-quarter) %>%
+  unique
 
 #save
 write_csv(dat_inflex,paste("../SocialInflationExpectation/_intermediate/inflexp_",l,"_",s,".csv",sep=""))
