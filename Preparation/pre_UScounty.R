@@ -310,6 +310,7 @@ dat_inflex_median <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select 
   filter(!is.na(inflexp_median)) %>%
   filter(obs>=3) %>%
   mutate(cz2000 = as.character(cz2000)) %>%
+  select(-obs) %>%
   rename(loc = cz2000) # This is for unifying all codes into one
 
 
