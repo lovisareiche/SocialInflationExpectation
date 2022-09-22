@@ -56,6 +56,7 @@ c <- "median"
 dat_covariates <- read_csv(paste("../SocialInflationExpectation/_intermediate/covariates_",l,".csv", sep="")) %>% 
   select(loc, med_hhinc, poor_share, housing_cost) 
 
+# for the US sample need to average as otherwise in counties
 if (l == "US") {
   U = uniq(dat_covariates$loc)
   a1 = accumarray(U$n,dat_covariates$med_hhinc, func = mean)
@@ -203,8 +204,8 @@ tefe4 <- plm(inflexp_chg_lag ~ PPI_lag,
              model = "within",
              effect = "twoways")
 
-
-stargazer(fe1,tefe1,fe2,tefe2,fe3,tefe3,fe4,tefe4,title="Fixed Effects Regression Results",align=TRUE, label = "tab:regfe", model.names = TRUE)
+# save stargazer output in tex file
+writeLines(capture.output(stargazer(fe1,tefe1,fe2,tefe2,fe3,tefe3,fe4,tefe4,title="Fixed Effects Regression Results",align=TRUE, label = "tab:regfe", model.names = TRUE)), paste("../SocialInflationExpectation/_output/POLS_",l,".tex",sep = ""))
 
 
 # Table 2: Pooled OLS Specification
@@ -227,60 +228,73 @@ for(i in 1:length(dates)){
 # create regression set with time dummies
 regress_dat <- bind_cols(regress_dat,T)
 
+
+# Problem: with EU data we have 444 different dates, for time dummies I need to write them out which is not efficient. Need to find a better way for this.
+# Solution: Write out the formula like this so it works in both contexts. Need to be careful with the order of the variables though!
+f1 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17,18,19,10,11,12,13,16)], collapse='+')))
+f_time1 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17,18,19,10,11,12,13,16,22:ncol(regress_dat))], collapse='+')))
+f2 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17,18,19,10,11,12,13)], collapse='+')))
+f_time2 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17,18,19,10,11,12,13,22:ncol(regress_dat))], collapse='+')))
+f3 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17)], collapse='+')))
+f_time3 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17,22:ncol(regress_dat))], collapse='+')))
+f4 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(18)], collapse='+')))
+f_time4 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(18,22:ncol(regress_dat))], collapse='+')))
+
+
 # all
 #po1 <- plm(inflexp_chg ~ SPI2 + PPI2 + cpi_inflation + inflexp_median + poor_share + med_hhinc + housing_cost + outwardness,  data = regress_dat, index = c("loc", "date"),   model = "pooling")
-po1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag + inflexp_lag + poor_share + med_hhinc + housing_cost + outwardness, 
+po1 <- plm(f1,
            data = regress_dat,
            index = c("loc", "date"), 
            model = "pooling")
 # with time fixed effects
 #tepo1 <- plm(inflexp_chg ~ SPI2 + PPI2 + cpi_inflation + inflexp_median + poor_share + med_hhinc + housing_cost + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010,   data = regress_dat,  index = c("loc", "date"),  model = "pooling")
-tepo1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag + inflexp_lag + poor_share + med_hhinc + housing_cost + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
+tepo1 <- plm(f_time1, 
              data = regress_dat,
              index = c("loc", "date"), 
              model = "pooling")
 
 # remove inflexp
 #po2 <- plm(inflexp_chg ~ SPI2 + PPI2 + cpi_inflation + poor_share + med_hhinc + housing_cost + outwardness,  data = regress_dat, index = c("loc", "date"),  model = "pooling")
-po2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag + poor_share + med_hhinc + housing_cost + outwardness, 
+po2 <- plm(f2, 
            data = regress_dat,
            index = c("loc", "date"), 
            model = "pooling")
 # with time fixed effects
 #tepo2 <- plm(inflexp_chg ~ SPI2 + PPI2 + cpi_inflation + poor_share + med_hhinc + housing_cost + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010,   data = regress_dat, index = c("loc", "date"),  model = "pooling")
-tepo2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag + poor_share + med_hhinc + housing_cost + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
+tepo2 <- plm(f_time2, 
              data = regress_dat,
              index = c("loc", "date"), 
              model = "pooling")
 
 # SPI only
 #po3 <- plm(inflexp_chg ~ SPI2,  data = regress_dat, index = c("loc", "date"),  model = "pooling")
-po3 <- plm(inflexp_chg_lag ~ SPI_lag, 
+po3 <- plm(f3, 
            data = regress_dat,
            index = c("loc", "date"), 
            model = "pooling")
 # with time fixed effects
 #tepo3 <- plm(inflexp_chg ~ SPI2 + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010,  data = regress_dat, index = c("loc", "date"),  model = "pooling")
-tepo3 <- plm(inflexp_chg_lag ~ SPI_lag + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
+tepo3 <- plm(f_time3, 
              data = regress_dat,
              index = c("loc", "date"), 
              model = "pooling")
 
 # PPI only
 #po4 <- plm(inflexp_chg ~ PPI2,   data = regress_dat,  index = c("loc", "date"),   model = "pooling")
-po4 <- plm(inflexp_chg_lag ~ PPI_lag, 
+po4 <- plm(f4, 
            data = regress_dat,
            index = c("loc", "date"), 
            model = "pooling")
 # with time fixed effects
 #tepo4 <- plm(inflexp_chg ~ PPI2 + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010,  data = regress_dat, index = c("loc", "date"),  model = "pooling")
-tepo4 <- plm(inflexp_chg_lag ~ PPI_lag + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
+tepo4 <- plm(f_time4, 
              data = regress_dat,
              index = c("loc", "date"), 
              model = "pooling")
 
-
-stargazer(po1,tepo1,po2,tepo2,po3,tepo3,po4,tepo4,title="Pooled OLS Regression Results",align=TRUE, label = "tab:regpo", model.names = TRUE)
+# save stargazer output in tex file
+writeLines(capture.output(stargazer(po1,tepo1,po2,tepo2,po3,tepo3,po4,tepo4,title="Pooled OLS Regression Results",align=TRUE, label = "tab:regpo", model.names = TRUE)), paste("../SocialInflationExpectation/_output/POLS_",l,".tex",sep = ""))
 
 
 # Scatter Plots
