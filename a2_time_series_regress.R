@@ -205,7 +205,7 @@ tefe4 <- plm(inflexp_chg_lag ~ PPI_lag,
              effect = "twoways")
 
 # save stargazer output in tex file
-writeLines(capture.output(stargazer(fe1,tefe1,fe2,tefe2,fe3,tefe3,fe4,tefe4,title="Fixed Effects Regression Results",align=TRUE, label = "tab:regfe", model.names = TRUE)), paste("../SocialInflationExpectation/_output/POLS_",l,".tex",sep = ""))
+writeLines(capture.output(stargazer(fe1,tefe1,fe2,tefe2,fe3,tefe3,fe4,tefe4,title="Fixed Effects Regression Results",align=TRUE, label = "tab:regfe", model.names = TRUE)), paste("../SocialInflationExpectation/_output/FE_",l,".tex",sep = ""))
 
 
 # Table 2: Pooled OLS Specification
@@ -301,12 +301,12 @@ writeLines(capture.output(stargazer(po1,tepo1,po2,tepo2,po3,tepo3,po4,tepo4,titl
 ###############
 
 
-pdf(file = paste("../SocialInflationExpectation/_output/SPI2_",c,"_chg.pdf",sep=""), width=6, height=6)
+pdf(file = paste("../SocialInflationExpectation/_output/SPI2_",l,".pdf",sep=""), width=6, height=6)
 
-plot(x = regress_dat$inflexp_chg_lag, 
-     y = regress_dat$SPI_lag,
-     xlab = "Change in Median Inflation Expectations",
-     ylab = "Social Proximity to Inflation (computation type 2)",
+plot(y = regress_dat$inflexp_chg_lag, 
+     x = regress_dat$SPI_lag,
+     ylab = "Change in Median Inflation Expectations",
+     xlab = "Social Proximity to Inflation",
      pch = 20, 
      col = "steelblue")
 
@@ -316,12 +316,12 @@ abline(tepo3, lwd = 1.5)
 
 dev.off()
 
-pdf(file = paste("../SocialInflationExpectation/_output/PPI2_",c,"_chg.pdf",sep=""), width=6, height=6)
+pdf(file = paste("../SocialInflationExpectation/_output/PPI2_",l,".pdf",sep=""), width=6, height=6)
 
-plot(x = regress_dat$inflexp_chg_lag, 
-     y = regress_dat$PPI_lag,
-     xlab = "Median Inflation Expectations",
-     ylab = "Physical Proximity to Inflation (computation type 2)",
+plot(y = regress_dat$inflexp_chg_lag, 
+     x = regress_dat$PPI_lag,
+     ylab = "Change in Median Inflation Expectations",
+     xlab = "Physical Proximity to Inflation",
      pch = 20, 
      col = "steelblue")
 
@@ -372,13 +372,13 @@ tefe2o1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag,
              effect = "twoways")
 
 # pooled ols
-po2o1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag+ cpi_inflation_lag + poor_share + med_hhinc + housing_cost + outwardness, 
+po2o1 <- plm(f2, 
            data = sample1,
            index = c("loc", "date"), 
            model = "pooling")
 
 # with time fixed effects
-tepo2o1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag + poor_share + med_hhinc + housing_cost + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
+tepo2o1 <- plm(f_time2, 
              data = sample1,
              index = c("loc", "date"), 
              model = "pooling")
@@ -399,18 +399,18 @@ tefe2o2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag,
                 effect = "twoways")
 
 # pooled ols
-po2o2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag + poor_share + med_hhinc + housing_cost + outwardness, 
+po2o2 <- plm(f2, 
               data = sample2,
               index = c("loc", "date"), 
               model = "pooling")
 
 # with time fixed effects
-tepo2o2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag + poor_share + med_hhinc + housing_cost + outwardness + X15949 + X16314 + X16405 + X16467 + X16495 + X16526 + X16556 + X16587 + X16617 + X16648 + X16679 + X16709 + X16740 + X16770 + X16801 + X16832 + X16861 + X16892 + X16922 + X16953 + X16983 + X17014 + X17045 + X17075 + X17106 + X17136 + X17167 + X17198 + X17226 + X17257 + X17318 + X17348 + X17379 + X17410 + X17440 + X15857 + X15887 + X15979 + X16040 + X16071 + X16102 + X16130 + X16161 + X16191 + X16222 + X16252 + X16283 + X16344 + X16375 + X16436 + X17287 + X17471 + X17501 + X16010, 
+tepo2o2 <- plm(f_time2, 
                 data = sample2,
                 index = c("loc", "date"), 
                 model = "pooling")
 
 
-stargazer(fe2o1,tefe2o1,po2o1,tepo2o1,fe2o2,tefe2o2,po2o2,tepo2o2,title="Regression Results Split by Outwardness",align=TRUE, label = "tab:regout", model.names = TRUE)
-
+# save stargazer output in tex file
+writeLines(capture.output(stargazer(fe2o1,tefe2o1,po2o1,tepo2o1,fe2o2,tefe2o2,po2o2,tepo2o2,title="Regression Results Split by Outwardness",align=TRUE, label = "tab:regout", model.names = TRUE)), paste("../SocialInflationExpectation/_output/Outwardness_",l,".tex",sep = ""))
 
