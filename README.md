@@ -7,12 +7,20 @@ Run these first to set up all the datasets needed for the codes below.
 
 ## Main Codes
 
-### a1: Creates SPI and PPI
+### a: Panel Regression
+
+#### 1 : Indices
 Creates the indices needed in the regression using social and physical proximity between geographical units and their inflation expectations
 
-### a2: Combines all variables to allow for a panel regression
+#### 2: Combines all variables to allow for a panel regression
 Creates a combined dataset and runs a number of regression specifications
 
-### a3: Case Study
-Identifies inflation events and checks how connectedness to this region impacts expectations
+### b: Case Study
+Identifies inflation events and checks how connectedness to this region impacts expectations.
+This analysis has not been written.
 
+### c: Further analysis
+Want to look at questions like: 
+1. Are biased commuting zones more connected?
+2. Is outwardness indicative of expectations?
+3. Can we preidct the variance of expectations
