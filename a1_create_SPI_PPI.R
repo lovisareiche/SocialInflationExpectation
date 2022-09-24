@@ -3,7 +3,7 @@
 #
 # Inputs: 
 #     _intermediate/sci.tsv
-#     _intermediate/outwardness.csv
+#     _intermediate/cpi.csv
 #     _intermediate/inflexp.csv
 #     _input/dist.xlsx
 #
