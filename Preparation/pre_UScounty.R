@@ -97,10 +97,11 @@ dir.cpi <- "../SocialInflationExpectation/_intermediate/cpi_cz2000-timeseries_na
 dat_geo <- read_xlsx(dir.geo) %>%
   # select only fips and 2000 commuting zones
   select(fips = FIPS, cz2000 = "Commuting Zone ID, 2000", cz1990 = "Commuting Zone ID, 1990") %>%
-  mutate(cz1990 = as.character(cz1990),cz2000 = as.character(cz2000), fips = as.character(fips))
+  mutate(cz1990 = as.character(cz1990),cz2000 = as.character(cz2000), fips = str_pad(as.character(fips), 5, "left", "0"))
 
 # Read in population size in each county to aggregate population weighted
 dat_pop <- read_xlsx(dir.pop) %>%
+  mutate(STATE = str_pad(as.character(STATE), 2, "left", "0"), COUNTY = str_pad(as.character(COUNTY), 3, "left", "0")) %>%
   # create fips index for counties by combining state and county code
   unite("fips",STATE:COUNTY, sep = "") %>%
   select(fips, pop = POP2021)
