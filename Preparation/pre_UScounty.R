@@ -321,7 +321,7 @@ write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/i
 
 # Read in data for county distances
 dat_dist <- read_xlsx(dir.dist) %>%
-  mutate(county1 = as.character(county1), county2 = as.character(county2)) %>% # mutate to characters for joining
+  mutate(county1 = str_pad(as.character(county1), 5, "left", "0"), county2 = str_pad(as.character(county2), 5, "left", "0")) %>% # mutate to characters for joining
   inner_join(dat_geo,by = c("county1"="fips")) %>%
   rename(user_loc = cz2000) %>%
   mutate(user_loc = as.numeric(user_loc)) %>% # mutate back for pracma functions
