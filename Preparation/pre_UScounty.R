@@ -321,6 +321,12 @@ write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/i
 
 # Read in data for county distances
 dat_dist <- read_xlsx(dir.dist) %>%
+  # need to add own distance (zero)
+  rbind(tibble(county1 = unique(c(county1,county2)), mi_to_county = rep(0,length(unique(c(county1,county2)))), county2 = unique(c(county1,county2))))
+
+  # need to find combinations from right side also to left
+dat_dist <- rbind(dat_dist, tibble(county1 = dat_dist$county2, mi_to_county = dat_dist$mi_to_county, county2 = dat_dist$county1)) %>%
+  distinct(.keep_all = TRUE) %>%
   mutate(county1 = str_pad(as.character(county1), 5, "left", "0"), county2 = str_pad(as.character(county2), 5, "left", "0")) %>% # mutate to characters for joining
   inner_join(dat_geo,by = c("county1"="fips")) %>%
   rename(user_loc = cz2000) %>%
