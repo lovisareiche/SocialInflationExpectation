@@ -31,10 +31,10 @@ rm(list=ls())
 
 
 # Do you want to look at US counties or EU countries?
-l <- "EU"
+l <- "US"
 
 # Which survey?
-s <- "ECFIN"
+s <- "FRBNY"
 
 
 # Do you want to look at mean or median computation?
@@ -104,15 +104,14 @@ regress_dat <- dat_inflexp %>%
   # Join with cpi (!!! Only availabe in 2018, on regional not cz basis !!!)
   inner_join(dat_cpi) %>%
   # compute l
-  mutate(inflexp_lead = dplyr::lead(inflexp_median)) %>%
   mutate(inflexp_lag = dplyr::lag(inflexp_median)) %>%
   mutate(inflexp_lead = dplyr::lead(inflexp_median)) %>%
   mutate(SPI_lag = dplyr::lag(SPI2)) %>%
   mutate(PPI_lag = dplyr::lag(PPI2)) %>%
   mutate(cpi_inflation_lag = dplyr::lag(cpi_inflation)) %>%
   # compute how much is adjusted for the next period
-  mutate(inflexp_chg_lead = inflexp_lead - inflexp_median) %>%
-  mutate(inflexp_chg_lag = inflexp_median - inflexp_lag) %>%
+  mutate(inflexp_chg_lead = abs(inflexp_lead - inflexp_median)) %>%
+  mutate(inflexp_chg_lag = abs(inflexp_median - inflexp_lag)) %>%
   #filter(!is.na(inflexp_lead)) %>%
   filter(!is.na(inflexp_lag))
 
@@ -231,8 +230,8 @@ regress_dat <- bind_cols(regress_dat,T)
 
 # Problem: with EU data we have 444 different dates, for time dummies I need to write them out which is not efficient. Need to find a better way for this.
 # Solution: Write out the formula like this so it works in both contexts. Need to be careful with the order of the variables though!
-f1 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17,18,19,10,11,12,13,16)], collapse='+')))
-f_time1 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17,18,19,10,11,12,13,16,22:ncol(regress_dat))], collapse='+')))
+f1 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17,18,19,10,11,12,13,15)], collapse='+')))
+f_time1 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17,18,19,10,11,12,13,15,22:ncol(regress_dat))], collapse='+')))
 f2 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17,18,19,10,11,12,13)], collapse='+')))
 f_time2 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17,18,19,10,11,12,13,22:ncol(regress_dat))], collapse='+')))
 f3 <- as.formula(paste('inflexp_chg_lag ~', paste(colnames(regress_dat)[c(17)], collapse='+')))
@@ -343,74 +342,196 @@ dev.off()
 
 # Split sample below and above outwardness mean
 
-mo <- mean(regress_dat$outwardness, na.rm = TRUE)
+quantiles <- quantile(regress_dat$outwardness, na.rm = TRUE)
 # I noticed that the mean here is lower than the mean in the stargazer summary statistic. Could be because there it shows up multiple times per observation due to the time component...
 
-# sample with outwardness below mean
+# sample with outwardness below 25% quantile
 sample1 <- regress_dat %>%
-  filter(outwardness <= mo)
+  filter(outwardness <= quantiles["25%"])
 
-# sample with outwardness above mean
+# sample with outwardness below 50% but above 25%
 sample2 <- regress_dat %>%
-  filter(outwardness > mo)
+  filter(outwardness > quantiles["25%"] & outwardness <= quantiles["50%"])
+
+# sample with outwardness below 75% but above 50%
+sample3 <- regress_dat %>%
+  filter(outwardness > quantiles["50%"] & outwardness <= quantiles["75%"])
+
+# sample with outwardness above 75%
+sample4 <- regress_dat %>%
+  filter(outwardness > quantiles["75%"])
 
 # Run same regression split for both samples
 
 # Sample 1: Low outwardness
 
-# fixed effects
-fe2o1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag, 
-           data = sample1,
-           index = c("loc", "date"), 
-           model = "within")
-
 # with time fixed effects
-tefe2o1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag, 
+o1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag, 
              data = sample1,
              index = c("loc", "date"), 
              model = "within",
              effect = "twoways")
 
-# pooled ols
-po2o1 <- plm(f2, 
-           data = sample1,
-           index = c("loc", "date"), 
-           model = "pooling")
+# with time fixed effects
+o12 <- plm(inflexp_chg_lag ~ SPI_lag+ PPI_lag + cpi_inflation_lag + inflexp_lag, 
+               data = sample1,
+               index = c("loc", "date"), 
+               model = "within",
+               effect = "twoways")
+
+
+# Sample 2: Low outwardness
+
 
 # with time fixed effects
-tepo2o1 <- plm(f_time2, 
-             data = sample1,
-             index = c("loc", "date"), 
-             model = "pooling")
-
-# Sample 2: High outwardness
-
-# fixed effects
-fe2o2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag, 
+o2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag, 
               data = sample2,
               index = c("loc", "date"), 
-              model = "within")
+              model = "within",
+              effect = "twoways")
 
 # with time fixed effects
-tefe2o2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag, 
+o22 <- plm(inflexp_chg_lag ~ SPI_lag+ PPI_lag + cpi_inflation_lag + inflexp_lag, 
                 data = sample2,
                 index = c("loc", "date"), 
                 model = "within",
                 effect = "twoways")
 
-# pooled ols
-po2o2 <- plm(f2, 
-              data = sample2,
-              index = c("loc", "date"), 
-              model = "pooling")
+# Sample 3: High outwardness
+
 
 # with time fixed effects
-tepo2o2 <- plm(f_time2, 
-                data = sample2,
+o3 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag, 
+              data = sample3,
+              index = c("loc", "date"), 
+              model = "within",
+              effect = "twoways")
+
+# with time fixed effects
+o32 <- plm(inflexp_chg_lag ~ SPI_lag+ PPI_lag + cpi_inflation_lag + inflexp_lag, 
+                data = sample3,
                 index = c("loc", "date"), 
-                model = "pooling")
+                model = "within",
+                effect = "twoways")
+
+# Sample 4: High outwardness
+
+
+# with time fixed effects
+o4 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag, 
+              data = sample4,
+              index = c("loc", "date"), 
+              model = "within",
+              effect = "twoways")
+
+# with time fixed effects
+o42 <- plm(inflexp_chg_lag ~ SPI_lag+ PPI_lag + cpi_inflation_lag + inflexp_lag, 
+                data = sample4,
+                index = c("loc", "date"), 
+                model = "within",
+                effect = "twoways")
 
 
 # save stargazer output in tex file
-writeLines(capture.output(stargazer(fe2o1,tefe2o1,po2o1,tepo2o1,fe2o2,tefe2o2,po2o2,tepo2o2,title="Regression Results Split by Outwardness",align=TRUE, label = "tab:regout", model.names = TRUE)), paste("../SocialInflationExpectation/_output/Outwardness_",l,".tex",sep = ""))
+writeLines(capture.output(stargazer(o1,o12, o2,o22, o3,o32, o4,o42, title="Regression Results Split by Outwardness",align=TRUE, label = "tab:regout", model.names = TRUE)), paste("../SocialInflationExpectation/_output/Outwardness_",l,".tex",sep = ""))
+
+
+
+# 4.2 Inflexp Split
+#######################
+
+# Split sample according to inflexp quintiles
+
+quantiles <- quantile(regress_dat$inflexp_median, na.rm = TRUE)
+# I noticed that the mean here is lower than the mean in the stargazer summary statistic. Could be because there it shows up multiple times per observation due to the time component...
+
+# sample with outwardness below 25% quantile
+sample1 <- regress_dat %>%
+  filter(inflexp_median <= quantiles["25%"])
+
+# sample with outwardness below 50% but above 25%
+sample2 <- regress_dat %>%
+  filter(inflexp_median > quantiles["25%"] & outwardness <= quantiles["50%"])
+
+# sample with outwardness below 75% but above 50%
+sample3 <- regress_dat %>%
+  filter(inflexp_median > quantiles["50%"] & outwardness <= quantiles["75%"])
+
+# sample with outwardness above 75%
+sample4 <- regress_dat %>%
+  filter(inflexp_median > quantiles["75%"])
+
+# Run same regression split for both samples
+
+# Sample 1: Low outwardness
+
+# with time fixed effects
+i1 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag, 
+          data = sample1,
+          index = c("loc", "date"), 
+          model = "within",
+          effect = "twoways")
+
+# with time fixed effects
+i12 <- plm(inflexp_chg_lag ~ SPI_lag+ PPI_lag + cpi_inflation_lag + inflexp_lag, 
+           data = sample1,
+           index = c("loc", "date"), 
+           model = "within",
+           effect = "twoways")
+
+
+# Sample 2: Low outwardness
+
+
+# with time fixed effects
+i2 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag, 
+          data = sample2,
+          index = c("loc", "date"), 
+          model = "within",
+          effect = "twoways")
+
+# with time fixed effects
+i22 <- plm(inflexp_chg_lag ~ SPI_lag+ PPI_lag + cpi_inflation_lag + inflexp_lag, 
+           data = sample2,
+           index = c("loc", "date"), 
+           model = "within",
+           effect = "twoways")
+
+# Sample 3: High outwardness
+
+
+# with time fixed effects
+i3 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag, 
+          data = sample3,
+          index = c("loc", "date"), 
+          model = "within",
+          effect = "twoways")
+
+# with time fixed effects
+i32 <- plm(inflexp_chg_lag ~ SPI_lag+ PPI_lag + cpi_inflation_lag + inflexp_lag, 
+           data = sample3,
+           index = c("loc", "date"), 
+           model = "within",
+           effect = "twoways")
+
+# Sample 4: High outwardness
+
+
+# with time fixed effects
+i4 <- plm(inflexp_chg_lag ~ SPI_lag + PPI_lag + cpi_inflation_lag, 
+          data = sample4,
+          index = c("loc", "date"), 
+          model = "within",
+          effect = "twoways")
+
+# with time fixed effects
+i42 <- plm(inflexp_chg_lag ~ SPI_lag+ PPI_lag + cpi_inflation_lag + inflexp_lag, 
+           data = sample4,
+           index = c("loc", "date"), 
+           model = "within",
+           effect = "twoways")
+
+
+# save stargazer output in tex file
+writeLines(capture.output(stargazer(i1,i12, i2,i22, i3,i32, i4,i42, title="Regression Results Split by Inflation Expectations",align=TRUE, label = "tab:regexp", model.names = TRUE)), paste("../SocialInflationExpectation/_output/InflexpSplit_",l,".tex",sep = ""))
 
