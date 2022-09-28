@@ -272,14 +272,14 @@ write_csv(outwardness_dat,paste("../SocialInflationExpectation/_intermediate/out
 if (s == "FRBNY") {
   # Read in Inflation expectations micro-data
   dat_inflex <- read_xlsx(dir.inflexp) %>%
-      rename(cz2000 = "_COMMUTING_ZONE", inflexp = "Q8v2part2") %>% # rename as name leads to error
+      rename(cz2000 = "_COMMUTING_ZONE", inflexp = "Q8v2part2", iqr = "Q9_iqr", cons = "Q26v2part2") %>% # rename as name leads to error
       mutate(inflexp = as.numeric(inflexp)) %>% # needs to be numeric for further operations
-      subset(select = c(date,userid,inflexp,cz2000)) %>%
       mutate(date = as.character(date)) %>%
       mutate(date = parse_date(date, "%Y%m")) %>%
       group_by(cz2000) %>% 
       arrange(cz2000, date) %>% # for overview
-      ungroup
+      ungroup %>%
+      na.omit
 } else if (s == "Michigan") { 
   # THIS ONE STILL NEEDS TO BE WRITTEN!!!!!
   # Read in Inflation expectations micro-data
@@ -299,18 +299,28 @@ if (s == "FRBNY") {
 dat_inflex_count <- aggregate(dat_inflex$userid, by=subset(dat_inflex, select = c(date,cz2000)), FUN = length) %>%
   rename(obs = x)
 
-dat_inflex_median <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = c(date,cz2000)), FUN = median, na.action = na.rm) %>%
-  rename(inflexp_median = x) %>%
-  inner_join(dat_inflex_count) %>%
+dat_inflex_median <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = c(date,cz2000)), FUN = median) %>%
+  rename(inflexp_median = x, loc = cz2000) %>%
+  inner_join(dat_inflex_count, by = c("date", "cz2000" = "loc")) %>%
   filter(!is.na(inflexp_median)) %>%
   filter(obs>=3) %>%
-  mutate(cz2000 = as.character(cz2000)) %>%
-  select(-obs) %>%
-  rename(loc = cz2000) # This is for unifying all codes into one
+  select(-obs)
 
 
 write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/inflexp_",l,"_",s,".csv",sep=""))
 
+dat_inflex_sd <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = c(date,cz2000)), FUN = sd) %>%
+  rename(inflexp_sd = x, loc = cz2000) %>%
+  inner_join(dat_inflex_count, by = c("date", "loc" = "cz2000")) %>%
+  filter(obs>=3) %>%
+  select(-obs)
+  
+dat_inflex_uncertainty <- aggregate(dat_inflex$iqr, by=subset(dat_inflex, select = c(date,cz2000)), FUN = median) %>%
+  rename(iqr_median = x, loc = cz2000) %>%
+  inner_join(dat_inflex_sd, by = c("date", "loc")) %>%
+  na.omit 
+
+write_csv(dat_inflex_uncertainty,paste("../SocialInflationExpectation/_intermediate/inflexp_uncertainty_",l,"_",s,".csv",sep=""))
 
 
 #################################
