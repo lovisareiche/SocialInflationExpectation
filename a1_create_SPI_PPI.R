@@ -21,7 +21,7 @@
 #     2. Create Social Proximity to Inflation
 #     3. Create Physical Proximity to Inflation
 
-
+' Housekeeping'
 rm(list = ls())
 library(tidyverse)
 
@@ -92,7 +92,7 @@ dat_dist <- read_csv(dir.dist)
     group_by(user_loc, date) %>% 
     # compute spi using differences
     mutate(SPI1 = sum((inflexp_median_fr)*share_sci)) %>%
-    mutate(SPI2 = sum((inflexp_median_fr-inflexp_median_user)*share_sci)) %>%
+    mutate(SPI2 = sum(abs(inflexp_median_fr-inflexp_median_user)*share_sci)) %>%
     summarise(SPI1, SPI2, SPI3 = sum((cpi_inflation_fr)*share_sci)) %>%
     distinct(.keep_all = TRUE) %>%
     ungroup
@@ -122,7 +122,7 @@ dat_dist <- read_csv(dir.dist)
     # Collapse and make the final weighted measure
     group_by(user_loc, date) %>% 
     mutate(PPI1 = sum((inflexp_median_fr)/(1+dist))) %>%
-    mutate(PPI2 = sum((inflexp_median_fr-inflexp_median_user)/(1+dist))) %>%
+    mutate(PPI2 = sum(abs(inflexp_median_fr-inflexp_median_user)/(1+dist))) %>%
     summarise(PPI1, PPI2, PPI3 = sum((cpi_inflation_fr)/(1+dist))) %>%
     distinct(.keep_all = TRUE) %>%
     ungroup
