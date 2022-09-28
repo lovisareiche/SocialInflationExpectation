@@ -295,7 +295,7 @@ if (s == "FRBNY") {
       ungroup
 }
 
-# count obervations in each cz date pair
+# for inflation expectations point estimate
 dat_inflex_count <- aggregate(dat_inflex$userid, by=subset(dat_inflex, select = c(date,cz2000)), FUN = length) %>%
   rename(obs = x)
 
@@ -306,9 +306,9 @@ dat_inflex_median <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select 
   filter(obs>=3) %>%
   select(-obs)
 
-
 write_csv(dat_inflex_median,paste("../SocialInflationExpectation/_intermediate/inflexp_",l,"_",s,".csv",sep=""))
 
+# for uncertainty
 dat_inflex_sd <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = c(date,cz2000)), FUN = sd) %>%
   rename(inflexp_sd = x, loc = cz2000) %>%
   inner_join(dat_inflex_count, by = c("date", "loc" = "cz2000")) %>%
@@ -321,6 +321,15 @@ dat_inflex_uncertainty <- aggregate(dat_inflex$iqr, by=subset(dat_inflex, select
   na.omit 
 
 write_csv(dat_inflex_uncertainty,paste("../SocialInflationExpectation/_intermediate/inflexp_uncertainty_",l,"_",s,".csv",sep=""))
+
+# for consumption
+dat_cons <- aggregate(dat_inflex$cons, by=subset(dat_inflex, select = c(date,cz2000)), FUN = median) %>%
+  rename(cons = x, loc = cz2000) %>%
+  inner_join(dat_inflex_count, by = c("date", "loc" = "cz2000")) %>%
+  filter(obs>=3) %>%
+  select(-obs)
+
+write_csv(dat_cons,paste("../SocialInflationExpectation/_intermediate/cons_",l,"_",s,".csv",sep=""))
 
 
 #################################
