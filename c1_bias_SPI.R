@@ -101,9 +101,13 @@ dat_dist <- read_csv(dir.dist)
 
 
 dat_bias <- dat_cpi %>%
+  group_by(loc) %>%
+  mutate(cpi_lead = dplyr::lead(cpi_inflation,12)) %>%
+  ungroup %>%
+  filter(!is.na(cpi_lead)) %>%
   inner_join(dat_inflexp) %>%
-  # bias is the difference between expectations and actual inflation
-  mutate(bias = inflexp_median - cpi_inflation) %>%
+  # bias is the difference between expectations and actual inflation (t+12)
+  mutate(bias = inflexp_median - cpi_lead) %>%
   select(loc,date,bias)
 
 
