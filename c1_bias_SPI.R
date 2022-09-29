@@ -108,7 +108,7 @@ dat_bias <- dat_cpi %>%
   inner_join(dat_inflexp) %>%
   # bias is the difference between expectations and actual inflation (t+12)
   mutate(bias = inflexp_median - cpi_lead) %>%
-  select(loc,date,bias)
+  select(loc,date,bias,inflexp_median)
 
 
 
@@ -130,11 +130,8 @@ spb <- dat_sci %>%
   # Collapse and make the final weighted measure
   group_by(user_loc, date) %>% 
   # compute spi using actual and differences
-  mutate(SPB1a = sum((bias_fr)*share_sci)) %>%
-  mutate(SPB2 = sum((bias_fr-bias_user)*share_sci)) %>%
-  filter(user_loc!=fr_loc) %>%
-  mutate(SPB1b = sum((bias_fr)*share_sci)) %>%
-  summarise(SPB1a,SPB1b,SPB2) %>%
+  mutate(SPB2 = sum(abs(bias_fr-bias_user)*share_sci)) %>%
+  summarise(SPB2) %>%
   distinct(.keep_all = TRUE) %>%
   ungroup
 
@@ -159,11 +156,8 @@ ppb <- dat_dist %>%
   filter(!is.na(bias_user)) %>%
   # Collapse and make the final weighted measure
   group_by(user_loc, date) %>% 
-  mutate(PPB1a = sum((bias_fr)/(1+dist))) %>%
-  mutate(PPB2 = sum((bias_fr-bias_user)/(1+dist))) %>%
-  filter(user_loc!=fr_loc) %>%
-  mutate(PPB1b = sum((bias_fr)/(1+dist))) %>%
-  summarise(PPB1a,PPB1b,PPB2) %>%
+  mutate(PPB2 = sum(abs(bias_fr-bias_user)/(1+dist))) %>%
+  summarise(PPB2) %>%
   distinct(.keep_all = TRUE) %>%
   ungroup
 
@@ -192,8 +186,9 @@ regress_dat <- dat_bias %>%
   mutate(SPB_lag = dplyr::lag(SPB2)) %>%
   mutate(PPB_lag = dplyr::lag(PPB2)) %>%
   mutate(cpi_inflation_lag = dplyr::lag(cpi_inflation)) %>%
+  mutate(inflexp_median_lag = dplyr::lag(inflexp_median)) %>%
   # compute how much is adjusted for the next period
-  mutate(bias_chg = bias - bias_lag) %>%
+  mutate(bias_chg = abs(bias - bias_lag)) %>%
   filter(!is.na(bias_chg))
 
 
@@ -227,6 +222,12 @@ tefe1 <- plm(bias_chg ~ SPB_lag + PPB_lag + cpi_inflation_lag,
              model = "within",
              effect = "twoways")
 
+tefe2 <- plm(bias_chg ~ SPB_lag + PPB_lag + cpi_inflation_lag + inflexp_median, 
+             data = regress_dat,
+             index = c("loc", "date"), 
+             model = "within",
+             effect = "twoways")
+
 
 tefe3 <- plm(bias_chg ~ SPB_lag, 
              data = regress_dat,
@@ -243,11 +244,17 @@ tefe4 <- plm(bias_chg ~ PPB_lag,
 
 # Problem: with EU data we have 444 different dates, for time dummies I need to write them out which is not efficient. Need to find a better way for this.
 # Solution: Write out the formula like this so it works in both contexts. Need to be careful with the order of the variables though!
-f_time1 <- as.formula(paste('bias_chg ~', paste(colnames(regress_dat)[c(16,17,18,10,11,12,13,20:ncol(regress_dat))], collapse='+')))
-f_time3 <- as.formula(paste('bias_chg ~', paste(colnames(regress_dat)[c(16,20:ncol(regress_dat))], collapse='+')))
-f_time4 <- as.formula(paste('bias_chg ~', paste(colnames(regress_dat)[c(17,20:ncol(regress_dat))], collapse='+')))
+f_time1 <- as.formula(paste('bias_chg ~', paste(colnames(regress_dat)[c(13:15,7:10,18:ncol(regress_dat))], collapse='+')))
+f_time2 <- as.formula(paste('bias_chg ~', paste(colnames(regress_dat)[c(13:16,7:10,18:ncol(regress_dat))], collapse='+')))
+f_time3 <- as.formula(paste('bias_chg ~', paste(colnames(regress_dat)[c(13,18:ncol(regress_dat))], collapse='+')))
+f_time4 <- as.formula(paste('bias_chg ~', paste(colnames(regress_dat)[c(14,18:ncol(regress_dat))], collapse='+')))
 
 tepo1 <- plm(f_time1, 
+             data = regress_dat,
+             index = c("loc", "date"), 
+             model = "pooling")
+
+tepo2 <- plm(f_time2, 
              data = regress_dat,
              index = c("loc", "date"), 
              model = "pooling")
@@ -264,105 +271,6 @@ tepo4 <- plm(f_time4,
 
 
 # save stargazer output in tex file
-writeLines(capture.output(stargazer(tefe1,tefe3,tefe4,tepo1,tepo3,tepo4,title="Regression Results using Chnage in Bias and Differencing",align=TRUE, label = "tab:regbias2", model.names = TRUE)), paste("../SocialInflationExpectation/_output/Bias2_",l,".tex",sep = ""))
+writeLines(capture.output(stargazer(tefe1,tefe2,tefe3,tefe4,tepo1,tepo2,tepo3,tepo4,title="Regression Results using Chnage in Bias and Differencing",align=TRUE, label = "tab:regbias2", model.names = TRUE)), paste("../SocialInflationExpectation/_output/Bias2_",l,".tex",sep = ""))
 
-
-
-# Table 2: Level (including own zone)
-#########################################
-
-
-tefe1 <- plm(bias ~ SPB1a + PPB1a + cpi_inflation, 
-             data = regress_dat,
-             index = c("loc", "date"), 
-             model = "within",
-             effect = "twoways")
-
-
-tefe3 <- plm(bias ~ SPB1a, 
-             data = regress_dat,
-             index = c("loc", "date"), 
-             model = "within",
-             effect = "twoways")
-
-tefe4 <- plm(bias ~ PPB1a, 
-             data = regress_dat,
-             index = c("loc", "date"), 
-             model = "within",
-             effect = "twoways")
-
-
-# Problem: with EU data we have 444 different dates, for time dummies I need to write them out which is not efficient. Need to find a better way for this.
-# Solution: Write out the formula like this so it works in both contexts. Need to be careful with the order of the variables though!
-f_time1 <- as.formula(paste('bias ~', paste(colnames(regress_dat)[c(4,7,14,10,11,12,13,20:ncol(regress_dat))], collapse='+')))
-f_time3 <- as.formula(paste('bias ~', paste(colnames(regress_dat)[c(4,20:ncol(regress_dat))], collapse='+')))
-f_time4 <- as.formula(paste('bias ~', paste(colnames(regress_dat)[c(7,20:ncol(regress_dat))], collapse='+')))
-
-tepo1 <- plm(f_time1, 
-             data = regress_dat,
-             index = c("loc", "date"), 
-             model = "pooling")
-
-tepo3 <- plm(f_time3, 
-             data = regress_dat,
-             index = c("loc", "date"), 
-             model = "pooling")
-
-tepo4 <- plm(f_time4, 
-             data = regress_dat,
-             index = c("loc", "date"), 
-             model = "pooling")
-
-
-# save stargazer output in tex file
-writeLines(capture.output(stargazer(tefe1,tefe3,tefe4,tepo1,tepo3,tepo4,title="Regression Results using Bias in Levels (a)",align=TRUE, label = "tab:regbias1a", model.names = TRUE)), paste("../SocialInflationExpectation/_output/Bias1a_",l,".tex",sep = ""))
-
-# Table 3: Level (excluding own zone)
-#########################################
-
-
-tefe1 <- plm(bias ~ SPB1b + PPB1b + cpi_inflation, 
-             data = regress_dat,
-             index = c("loc", "date"), 
-             model = "within",
-             effect = "twoways")
-
-
-tefe3 <- plm(bias ~ SPB1b, 
-             data = regress_dat,
-             index = c("loc", "date"), 
-             model = "within",
-             effect = "twoways")
-
-tefe4 <- plm(bias ~ PPB1b, 
-             data = regress_dat,
-             index = c("loc", "date"), 
-             model = "within",
-             effect = "twoways")
-
-
-# Problem: with EU data we have 444 different dates, for time dummies I need to write them out which is not efficient. Need to find a better way for this.
-# Solution: Write out the formula like this so it works in both contexts. Need to be careful with the order of the variables though!
-f_time1 <- as.formula(paste('bias ~', paste(colnames(regress_dat)[c(5,8,14,10,11,12,13,20:ncol(regress_dat))], collapse='+')))
-f_time3 <- as.formula(paste('bias ~', paste(colnames(regress_dat)[c(5,20:ncol(regress_dat))], collapse='+')))
-f_time4 <- as.formula(paste('bias ~', paste(colnames(regress_dat)[c(8,20:ncol(regress_dat))], collapse='+')))
-
-tepo1 <- plm(f_time1, 
-             data = regress_dat,
-             index = c("loc", "date"), 
-             model = "pooling")
-
-tepo3 <- plm(f_time3, 
-             data = regress_dat,
-             index = c("loc", "date"), 
-             model = "pooling")
-
-tepo4 <- plm(f_time4, 
-             data = regress_dat,
-             index = c("loc", "date"), 
-             model = "pooling")
-
-
-# save stargazer output in tex file
-writeLines(capture.output(stargazer(tefe1,tefe3,tefe4,tepo1,tepo3,tepo4,title="Regression Results using Bias in Levels (b)",align=TRUE, label = "tab:regbias1b", model.names = TRUE)), paste("../SocialInflationExpectation/_output/Bias1b_",l,".tex",sep = ""))
 
