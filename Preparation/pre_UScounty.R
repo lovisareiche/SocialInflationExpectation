@@ -301,7 +301,7 @@ dat_inflex_count <- aggregate(dat_inflex$userid, by=subset(dat_inflex, select = 
 
 dat_inflex_median <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = c(date,cz2000)), FUN = median) %>%
   rename(inflexp_median = x, loc = cz2000) %>%
-  inner_join(dat_inflex_count, by = c("date", "cz2000" = "loc")) %>%
+  inner_join(dat_inflex_count, by = c("date", "loc" = "cz2000")) %>%
   filter(!is.na(inflexp_median)) %>%
   filter(obs>=3) %>%
   select(-obs)
