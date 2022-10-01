@@ -222,7 +222,7 @@ tefe1 <- plm(bias_chg ~ SPB_lag + PPB_lag + cpi_inflation_lag,
              model = "within",
              effect = "twoways")
 
-tefe2 <- plm(bias_chg ~ SPB_lag + PPB_lag + cpi_inflation_lag + inflexp_median, 
+tefe2 <- plm(bias_chg ~ SPB_lag + PPB_lag + cpi_inflation_lag + inflexp_median_lag, 
              data = regress_dat,
              index = c("loc", "date"), 
              model = "within",
