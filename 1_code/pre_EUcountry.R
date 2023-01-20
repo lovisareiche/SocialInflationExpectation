@@ -1,16 +1,16 @@
 # Purpose: Prepare the datasets such that they are in the required shape for the next steps
 #
 # Inputs: 
-#     _input/sci.tsv
-#     _input/covariates.xlsx
-#     _input/inflexp.xlsx
-#     _input/geo_match.xlsx
-#     _input/dist.xlsx
+#     sci.tsv
+#     covariates.xlsx
+#     inflexp.xlsx
+#     geo_match.xlsx
+#     dist.xlsx
 # Outputs: 
-#     _intermediate/covariates.csv
-#     _intermediate/sci.tsv
-#     _intermediate/outwardness.csv
-#     _intermediate/inflexp_date_cz.csv
+#     covariates.csv
+#     sci.tsv
+#     outwardness.csv
+#     inflexp_date_cz.csv
 #
 # Date: 17/09/2022
 # written by: Lovisa Reiche
@@ -23,17 +23,31 @@
 #     5. Prep Covariates data
 
 
-rm(list = ls())
+
+
+rm(list=ls())
+NAME <- 'pre_EUcountry' ## Name of the R file goes here (without the file extension!)
+PROJECT <- 'SocialInflationExpectations'
+PROJECT_DIR <- 'D:/Lovisa/Studium/Oxford/Department of Economics/DPhil' ## Change this to the directory in which your project folder is located, make sure to avoid using single backslashes (i.e. \)!
+
+
+## -------
+## Imports
+## -------
+### All the library imports go here
+
 library(tidyverse) # general commands
 library(readxl) # to read excel files
 library(pracma) # for matlab functions (uniq,acumarray)
+library(lubridate)
 
 
 
-#########################################
-##### This code is for EU countries #####
-#########################################
+####################
+##### Settings #####
+####################
 
+setwd(file.path(PROJECT_DIR, PROJECT))
 
 
 # Do you want to look at US counties or EU countries?
@@ -42,6 +56,28 @@ l <- "EU"
 # Which survey?
 s <- "ECFIN"
 
+
+## ----------------------------------
+## Set  up pipeline folder if missing
+## ----------------------------------
+### The code below will automatically create a pipeline folder for this code file if it does not exist.
+
+if (dir.exists(file.path('empirical', '2_pipeline'))){
+  pipeline <- file.path('empirical', '2_pipeline', NAME)
+} else {
+  pipeline <- file.path('2_pipeline', NAME)
+}
+
+if (!dir.exists(pipeline)) {
+  dir.create(pipeline)
+  for (folder in c('out', 'store', 'tmp')){
+    dir.create(file.path(pipeline, folder))
+  }
+}
+
+if (!dir.exists(file.path(pipeline,'out',l))) {
+  dir.create(file.path(pipeline,'out',l))
+}
 
 ####################################
 ##### 1. Specify data location #####
@@ -52,39 +88,39 @@ s <- "ECFIN"
 
 # SCI 
 # https://data.humdata.org/dataset/social-connectedness-index'
-dir.sci <- paste("../code/_input/",l,"/sci.tsv",sep="")
+dir.sci <- file.path('empirical', '0_data', 'external',l,'sci.tsv')
 
 # Covariates
 # https://ec.europa.eu/eurostat/web/main/data/database
-dir.covariates <- paste("../code/_input/",l,"/covariates.xlsx",sep="")
+dir.covariates <- file.path('empirical', '0_data', 'external',l,'covariates.xlsx')
 
 # Inflation
 #  Consumer and Business Surveys, © 1985-2022 European Commission (ECFIN)
-dir.inflexp <- paste("../code/_input/",l,"/inflexp_",s,".xlsx",sep="")
+dir.inflexp <- file.path('empirical', '0_data', 'external',l,'inflexp.xlsx')
 
 # Geographic IDs
 # List of ISO 3166 country codes
-dir.geo <- paste("../code/_input/",l,"/geo_match.xlsx",sep="")
+dir.geo <- file.path('empirical', '0_data', 'external',l,'geo_match.xlsx')
 
 # Population
 # https://data.worldbank.org/indicator/SP.POP.TOTL?locations=1W
-dir.pop <- paste("../code/_input/",l,"/pop_",l,".xlsx",sep="")
+dir.pop <- file.path('empirical', '0_data', 'external',l,'pop.xlsx')
 
 # Distance
 # Mayer, T. & Zignago, S. (2011), Notes on CEPII’s distances measures : the GeoDist Database, CEPII Working Paper 2011-25
 # http://cepii.fr/cepii/en/bdd_modele/bdd_modele_item.asp?id=6
-dir.dist <- paste("../code/_input/",l,"/dist.xlsx",sep="")
+dir.dist <- file.path('empirical', '0_data', 'external',l,'dist.xlsx')
 
 
 # Inflation
 # https://thedocs.worldbank.org/en/doc/483541579976288664-0050022020/Inflation-data
-dir.cpi <- paste("../code/_input/",l,"/inflation.xlsx",sep="")
-
+dir.cpi <- file.path('empirical', '0_data', 'external',l,'inflation.xlsx')
 
 
 ###############################
 ##### 2. Prep Geo and Pop #####
 ###############################
+
 
 # We want to put all datasets in terms of 2-digit and need geo for that
 
@@ -122,8 +158,8 @@ dat_outwardness <- dat_sci %>%
   summarise(outwardness = (1-share_sci[user_loc==fr_loc]), user_loc = unique(user_loc))
 
 
-write_tsv(dat_sci,paste("../code/_intermediate/sci_",l,".tsv",sep=""))
-write_csv(dat_outwardness,paste("../code/_intermediate/outwardness_",l,".csv",sep=""))
+write_tsv(dat_sci,file.path(pipeline, 'out',l, 'sci.tsv'))
+write_csv(dat_outwardness,file.path(pipeline, 'out',l, 'outwardness.csv'))
 
 
 # Distances need to be put in the right units (2-digit)
@@ -139,7 +175,7 @@ dat_dist <- read_xlsx(dir.dist) %>%
   rename(fr_loc = alpha2) %>%
   select(user_loc,fr_loc,dist)
 
-write_csv(dat_dist,paste("../code/_intermediate/dist_",l,".csv",sep=""))
+write_csv(dat_dist,file.path(pipeline, 'out',l, 'dist.csv'))
 
 
 ##############################################
@@ -166,7 +202,7 @@ dat_inflex <- dat_inflex[,c(1,3,2)]
 day(dat_inflex$date) <- 1
 
 #save
-write_csv(dat_inflex,paste("../code/_intermediate/inflexp_",l,"_",s,".csv",sep=""))
+write_csv(dat_inflex,file.path(pipeline, 'out',l, 'inflexp.csv'))
 
 
 # Read in Inflation data
@@ -297,7 +333,7 @@ dat_cpi <- dat_cpi %>%
   select(-month,-year,-quarter)
 
 #save
-write_csv(dat_cpi,paste("../code/_intermediate/cpi_",l,".csv",sep=""))
+write_csv(dat_cpi,file.path(pipeline, 'out',l, 'cpi.csv'))
 
 
 
@@ -312,6 +348,6 @@ write_csv(dat_cpi,paste("../code/_intermediate/cpi_",l,".csv",sep=""))
 dat_covariates <- read_xlsx(dir.covariates) %>%
   select(-GEO)
 
-write_csv(dat_covariates,paste("../code/_intermediate/covariates_",l,".csv",sep=""))
+write_csv(dat_covariates,file.path(pipeline, 'out',l, 'covariates.csv'))
 
 

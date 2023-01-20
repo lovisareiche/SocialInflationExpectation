@@ -1,10 +1,12 @@
 # Purpose: Create time series of US commuting zones inflation data
 
 # Inputs: 
-#     _input/statecpi_beta.csv
+#     statecpi_beta.csv
+#     fips_state.xlsx
+#     geo_match.csv
 
 # Outputs: 
-#     _intermediate/cpi_cz2000-timeseries_nakamura.csv
+#     cpi_cz2000-timeseries_nakamura.csv
 
 # Date: 04/08/2022
 # Steps:
