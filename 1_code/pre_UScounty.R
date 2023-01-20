@@ -1,16 +1,16 @@
 # Purpose: Prepare the datasets such that they are in the required shape for the next steps
 #
 # Inputs: 
-#     _input/sci.tsv
-#     _input/covariates.xlsx
-#     _input/inflexp.xlsx
-#     _input/geo_match.xlsx
-#     _input/dist.xlsx
+#     sci.tsv
+#     covariates.xlsx
+#     inflexp.xlsx
+#     geo_match.xlsx
+#     dist.xlsx
 # Outputs: 
-#     _intermediate/covariates.csv
-#     _intermediate/sci.tsv
-#     _intermediate/outwardness.csv
-#     _intermediate/inflexp_date_cz.csv
+#     covariates.csv
+#     sci.tsv
+#     outwardness.csv
+#     inflexp_date_cz.csv
 #
 # Date: 17/09/2022
 # written by: Lovisa Reiche
@@ -23,17 +23,31 @@
 #     5. Prep Covariates data
 
 
-rm(list = ls())
+
+
+rm(list=ls())
+NAME <- 'pre_EUcountry' ## Name of the R file goes here (without the file extension!)
+PROJECT <- 'SocialInflationExpectations'
+PROJECT_DIR <- 'D:/Lovisa/Studium/Oxford/Department of Economics/DPhil' ## Change this to the directory in which your project folder is located, make sure to avoid using single backslashes (i.e. \)!
+
+
+## -------
+## Imports
+## -------
+### All the library imports go here
+
 library(tidyverse) # general commands
 library(readxl) # to read excel files
 library(pracma) # for matlab functions (uniq,acumarray)
+library(lubridate)
 
 
 
-########################################
-##### This code is for US counties #####
-########################################
+####################
+##### Settings #####
+####################
 
+setwd(file.path(PROJECT_DIR, PROJECT))
 
 
 # Do you want to look at US counties or EU countries?
@@ -43,43 +57,61 @@ l <- "US"
 s <- "FRBNY"
 
 
-####################################
-##### 1. Specify data location #####
-####################################
+## ----------------------------------
+## Set  up pipeline folder if missing
+## ----------------------------------
+### The code below will automatically create a pipeline folder for this code file if it does not exist.
+
+if (dir.exists(file.path('empirical', '2_pipeline'))){
+  pipeline <- file.path('empirical', '2_pipeline', NAME)
+} else {
+  pipeline <- file.path('2_pipeline', NAME)
+}
+
+if (!dir.exists(pipeline)) {
+  dir.create(pipeline)
+  for (folder in c('out', 'store', 'tmp')){
+    dir.create(file.path(pipeline, folder))
+  }
+}
+
+if (!dir.exists(file.path(pipeline,'out',l))) {
+  dir.create(file.path(pipeline,'out',l))
+}
 
 
 #### FILL IN THESE LINEs BEFORE RUNNING ####
 
 # SCI 
 # https://data.humdata.org/dataset/social-connectedness-index'
-dir.sci <- paste("../code/_input/",l,"/sci.tsv",sep="")
+dir.sci <- file.path('empirical', '0_data', 'external',l,'sci.tsv')
 
 # Covariates
 # https://opportunityinsights.org/data/?geographic_level=102&topic=0&paper_id=0#resource-listing
-dir.covariates <- paste("../code/_input/",l,"/covariates.xlsx",sep="")
+dir.covariates <- file.path('empirical', '0_data', 'external',l,'covariates.xlsx')
 # Note: use 2010 FIPS and 1990 commuting zones
 
 # Inflation
 #  Survey of Consumer Expectations, © 2013-21 Federal Reserve Bank of New York (FRBNY)
-dir.inflexp <- paste("../code/_input/",l,"/inflexp_",s,".xlsx",sep="")
+dir.inflexp <- file.path('empirical', '0_data', 'external',l,paste('inflexp_',s,'.xlsx',sep = ""))
 # Note: use 2000 commuting zones
 
 # Geographic IDs
 # https://www.ers.usda.gov/data-products/commuting-zones-and-labor-market-areas/
-dir.geo <- paste("../code/_input/",l,"/geo_match.xlsx",sep="")
+dir.geo <- file.path('empirical', '0_data', 'external',l,'geo_match.xlsx')
 
 # Population
 # https://www.census.gov/data/datasets/time-series/demo/popest/2020s-counties-total.html#par_textimage_70769902
-dir.pop <- paste("../code/_input/",l,"/pop_",l,".xlsx",sep="")
+dir.pop <- file.path('empirical', '0_data', 'external',l,'pop.xlsx')
 
 # Distance
 # https://data.nber.org/data/county-distance-database.html
-dir.dist <- paste("../code/_input/",l,"/dist.xlsx",sep="")
+dir.dist <- file.path('empirical', '0_data', 'external',l,'dist.xlsx')
 
 
 # Inflation
 # Hazell et al 2020, created in b2_create_state_cpi_nakamura
-dir.cpi <- "../code/_intermediate/cpi_cz2000-timeseries_nakamura.csv"
+dir.cpi <- file.path('empirical', '2_pipeline','pre_create_state_cpi_nakamura','out','cpi_cz2000-timeseries_nakamura.csv')
 
 
 ############################
@@ -258,8 +290,8 @@ outwardness_dat <- dat_sci_final %>%
   summarise(outwardness = (1-share_sci[user_loc==fr_loc]), user_loc = unique(user_loc))
 
 
-write_tsv(dat_sci_final,paste("../code/_intermediate/sci_",l,".tsv",sep=""))
-write_csv(outwardness_dat,paste("../code/_intermediate/outwardness_",l,".csv",sep=""))
+write_tsv(dat_sci,file.path(pipeline, 'out',l, 'sci.tsv'))
+write_csv(dat_outwardness,file.path(pipeline, 'out',l, 'outwardness.csv'))
 
 
 
@@ -306,7 +338,7 @@ dat_inflex_median <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select 
   filter(obs>=3) %>%
   select(-obs)
 
-write_csv(dat_inflex_median,paste("../code/_intermediate/inflexp_",l,"_",s,".csv",sep=""))
+write_csv(dat_inflex,file.path(pipeline, 'out',l, paste('inflexp_',s,'.csv',sep = "")))
 
 # for uncertainty
 dat_inflex_sd <- aggregate(dat_inflex$inflexp, by=subset(dat_inflex, select = c(date,cz2000)), FUN = sd) %>%
@@ -320,7 +352,7 @@ dat_inflex_uncertainty <- aggregate(dat_inflex$iqr, by=subset(dat_inflex, select
   inner_join(dat_inflex_sd, by = c("date", "loc")) %>%
   na.omit 
 
-write_csv(dat_inflex_uncertainty,paste("../code/_intermediate/inflexp_uncertainty_",l,"_",s,".csv",sep=""))
+write_csv(dat_inflex_uncertainty,file.path(pipeline, 'out',l, paste('inflexp_uncertainty_',s,'.csv',sep = "")))
 
 # for consumption
 dat_cons <- aggregate(dat_inflex$cons, by=subset(dat_inflex, select = c(date,cz2000)), FUN = median) %>%
@@ -329,7 +361,7 @@ dat_cons <- aggregate(dat_inflex$cons, by=subset(dat_inflex, select = c(date,cz2
   filter(obs>=3) %>%
   select(-obs)
 
-write_csv(dat_cons,paste("../code/_intermediate/cons_",l,"_",s,".csv",sep=""))
+write_csv(dat_cons,file.path(pipeline, 'out',l, paste('cons_',s,'.csv',sep = "")))
 
 
 #################################
@@ -376,7 +408,7 @@ for (i in unique(dat_dist$user_loc)) {
   
 }
 
-write_csv(dat_dist_final,paste("../code/_intermediate/dist_",l,".csv",sep=""))
+write_csv(dat_dist_final,file.path(pipeline, 'out',l, 'dist.csv'))
 
 
 
@@ -394,7 +426,7 @@ dat_covariates <- read_xlsx(dir.covariates) %>%
   left_join(dat_geo,by = "cz1990") %>%
   rename(loc = cz2000)
 
-write_csv(dat_covariates,paste("../code/_intermediate/covariates_",l,".csv",sep=""))
+write_csv(dat_covariates,file.path(pipeline, 'out',l, 'covariates.csv'))
 
 
 # Read in inflation data
@@ -403,7 +435,7 @@ dat_cpi <- read_csv(dir.cpi) %>%
   select(cz2000,date,pi_mean) %>%
   rename(cpi_inflation = pi_mean, loc = cz2000)
 
-write_csv(dat_cpi,paste("../code/_intermediate/cpi_",l,".csv",sep=""))
+write_csv(dat_cpi,file.path(pipeline, 'out',l, 'cpi.csv'))
 
 
 
